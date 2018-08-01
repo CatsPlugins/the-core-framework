@@ -1,0 +1,9 @@
+<select n:attr="$attr" n:inner-foreach="$option as $sValue => $mName">
+  {if ('is_array'|php:$mName)}
+  <optgroup label="{$sValue}" n:inner-foreach="$mName as $sChildValue => $sChildName">
+    <option value="{$sChildValue}" {('in_array'|php:$sChildValue,$attr['value']) ? 'selected'}>{$sChildName}</option>
+  </optgroup>
+  {else}
+  <option value="{$sValue}" {('in_array'|php:$sValue,$attr['value']) ? 'selected'}>{$mName}</option>
+  {/if}
+</select>

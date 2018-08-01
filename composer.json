@@ -2,29 +2,38 @@
   "name": "catsplugins/the-core",
   "license": "MIT",
   "type": "project",
-  "description": "The Plugin Core for Wordpress",
+  "description": "The Plugin Core Framework for Wordpress",
   "require": {
-    "php": ">=7.0",
-    "tracy/tracy": "@stable",
-    "nette/neon": "@stable",
-    "nette/utils": "@stable",
-    "nette/caching": "@stable",
-    "guzzlehttp/guzzle": "@stable"
+    "php": ">=7.1",
+    "tracy/tracy": "^2.5",
+    "latte/latte": "^2.4",
+    "nette/neon": "^2.4",
+    "nette/utils": "^2.5",
+    "nette/caching": "^2.5",
+    "nette/robot-loader": "^3.0",
+    "guzzlehttp/guzzle": "^5.3"
   },
   "require-dev": {
     "tracy/tracy": "@stable",
+    "latte/latte": "@stable",
     "nette/neon": "@stable",
     "nette/utils": "@stable",
     "nette/caching": "@stable",
+    "nette/robot-loader": "@stable",
     "guzzlehttp/guzzle": "@stable"
   },
   "config": {
     "platform": {
-      "php": ">=7.0"
+      "php": "7.1"
     },
     "preferred-install": {
       "*": "dist"
     },
     "sort-packages": true
-  }
+  },
+  "autoload": {
+    "psr-0" : {
+        "CatsPlugins\\TheCore" : "src"
+    }
+}
 }
