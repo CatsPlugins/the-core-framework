@@ -15,7 +15,6 @@ declare (strict_types = 1);
 
 namespace CatsPlugins\TheCore;
 
-use Nette\Utils\Html;
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
 
@@ -37,14 +36,14 @@ final class ModuleRender {
   /**
    * Send a json content
    *
-   * @param array $data 
-   * 
-   * @return callable
+   * @param array $data Array data
+   *
+   * @return void
    */
-  public static function json(array $data): callable {
+  public static function toJson(array $data): void {
     try {
       $content = Json::encode($data);
-    } catch (JsonException $e) {      
+    } catch (JsonException $e) {
       $content = Json::encode(['error' => $e->getMessage()]);
     }
 
@@ -59,11 +58,11 @@ final class ModuleRender {
   /**
    * Send a text content
    *
-   * @param mixed $data 
-   * 
+   * @param mixed $data Any variable
+   *
    * @return void
    */
-  public static function text(mixed $data): void {
+  public static function toText(mixed $data): void {
     $content = print_r($data, true);
     //$content = preg_replace('/(\w+\n\()/', '(', $content);
 
@@ -72,6 +71,28 @@ final class ModuleRender {
     header('Content-Type: text; charset=UTF-8', true);
 
     echo "<pre>$content</pre>";
+    exit;
+  }
+
+  /**
+   * Render array to html list
+   *
+   * @param mixed $array Support object
+   *
+   * @return void
+   *
+   * TODO: make with Nette.Utils.Html
+   */
+  public static function toListHtml(mixed $array): void {
+    if (is_object($array)) {
+      $array = ModuleHelper::objectToArray($array);
+    }
+
+    foreach ($array as $value) {
+      $html .= "<li>$value</li>";
+    }
+
+    echo "<ul>$html</ul>";
     exit;
   }
 }

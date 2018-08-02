@@ -7,37 +7,33 @@
     <description>
         My custom rule set that checks my code...
     </description>
-
-    <!-- Import the entire unused code rule set -->
-    <rule ref="rulesets/unusedcode.xml" />
-    <!-- Import the entire clean code rule set -->
-    <rule ref="rulesets/cleancode.xml">
-        <exclude name="StaticAccess" />
-    </rule>
-    <!-- Import the entire controversial rule set -->
-    <rule ref="rulesets/controversial.xml" />
-    <!-- Import the entire naming rule set -->
-    <rule ref="rulesets/naming.xml" />
-    <!-- Import the entire design code rule set -->
-    <rule ref="rulesets/design.xml">
-        <exclude name="ExitExpression" />
-    </rule>
-    <!-- Import the entire code size rule set -->
-    <rule ref="rulesets/codesize.xml" />
-
-    <!--
-        Import the entire cyclomatic complexity rule and
-        customize the rule configuration.
-    -->
-    <rule ref="rulesets/controversial.xml/CamelCasePropertyName">
+    <rule ref="rulesets/codesize.xml/CyclomaticComplexity">
         <properties>
-            <property name="allow-underscore" value="true" />
+            <property name="reportLevel" value="15"/>
         </properties>
     </rule>
-
-    <rule ref="rulesets/controversial.xml/CamelCaseMethodName">
+    <rule ref="rulesets/codesize.xml/NPathComplexity"/>
+    <rule ref="rulesets/codesize.xml/ExcessiveMethodLength"/>
+    <rule ref="rulesets/codesize.xml/ExcessiveClassLength"/>
+    <rule ref="rulesets/codesize.xml/ExcessiveParameterList"/>
+    <rule ref="rulesets/codesize.xml/ExcessivePublicCount"/>
+    <rule ref="rulesets/codesize.xml/TooManyFields"/>
+    <rule ref="rulesets/codesize.xml/TooManyMethods">
         <properties>
-            <property name="allow-underscore" value="true" />
+            <property name="maxmethods" value="15"/>
         </properties>
     </rule>
+    <rule ref="rulesets/codesize.xml/ExcessiveClassComplexity">
+        <properties>
+            <property name="maximum" value="65"/>
+        </properties>
+    </rule>
+    <rule ref="rulesets/controversial.xml"/>
+    <rule ref="rulesets/design.xml/EvalExpression"/>
+    <rule ref="rulesets/design.xml/GotoStatement"/>
+    <rule ref="rulesets/design.xml/NumberOfChildren"/>
+    <rule ref="rulesets/design.xml/DepthOfInheritance"/>
+    <rule ref="rulesets/design.xml/CouplingBetweenObjects"/>
+    <rule ref="rulesets/naming.xml"/>
+    <rule ref="rulesets/unusedcode.xml"/>
 </ruleset>

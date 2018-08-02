@@ -16,6 +16,7 @@ declare (strict_types = 1);
 namespace CatsPlugins\TheCore;
 
 use GuzzleHttp\Client;
+use Nette\Utils\Callback;
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
 
@@ -33,6 +34,7 @@ defined('TCF_PATH_BASE') or die('No script kiddies please!');
  * @license  GPLv2 https://www.gnu.org
  * @link     https://catsplugins.com
  */
+
 final class ModuleHelper {
 
   /**
@@ -74,7 +76,7 @@ final class ModuleHelper {
    *
    * @return array
    */
-  public function objectToArray(stdClass $input): array{
+  public static function objectToArray(stdClass $input): array{
     try {
       return Json::decode(Json::encode($input), Json::FORCE_ARRAY);
     } catch (JsonException $e) {
@@ -89,7 +91,7 @@ final class ModuleHelper {
    *
    * @return stdClass
    */
-  public function arrayToObject(array $input): stdClass {
+  public static function arrayToObject(array $input): stdClass {
     try {
       return Json::decode(Json::encode($input));
     } catch (JsonException $e) {
@@ -97,191 +99,227 @@ final class ModuleHelper {
     }
   }
 
-  public function printVariableToHtml($mixed) {
-    $sContent = print_r($mixed, true);
-    $sContent = preg_replace('/(\w+\n\()/', '(', $sContent);
-    return "<pre>$sContent</pre>";
-  }
-
-  public function renderArrayToHtml($array) {
-    $array = $this->objectToArray($array);
-
-    $sHTML = '<ul>';
-    foreach ($array as $key => $value) {
-      $sHTML .= "<li>$value</li>";
-    }
-    $sHTML .= '</ul>';
-    return $sHTML;
-  }
-
-  public function getMainDomain($sText) {
-    $sURL = $sText;
-
-    // Get domain name form string
-    if (preg_match_all('#[-a-zA-Z0-9@:%_\+.~\#?&//=]{2,256}\.[a-z]{2,4}\b(\/[-a-zA-Z0-9@:%_\+.~\#?&//=]*)?#si', $sText, $aResult, PREG_PATTERN_ORDER)) {
-      $sURL = $aResult[0][0];
-    }
-
-    $aURL    = parse_url($sURL);
-    $sDomain = !empty($aURL['host']) ? $aURL['host'] : false;
-
-    if ($sDomain === false && $this->validDomainName($sText) === true) {
-      $sDomain = $sText;
-    }
-
-    return $sDomain;
-  }
-
-  public function validDomainName($sDomain) {
-    if (!preg_match("/^[a-z0-9][a-z0-9-._]{1,61}[a-z0-9]\.[a-z]{2,}$/i", $sDomain)) {
-      return false;
-    }
-    return true;
-  }
-
-  public function arraySearchRecursive($mFind, $aData, $bOnlyParent = false, $sKeyParent = 0) {
-    foreach ($aData as $sKey => $nValue) {
-      if (is_array($nValue)) {
-        $sPass = $sKeyParent;
-        if (is_string($sKey)) {
-          $sPass = $sKey;
-        }
-        $currentKey = $this->arraySearchRecursive($mFind, $nValue, $bOnlyParent, $sPass);
-        if ($currentKey !== false) {
-          return $currentKey;
-        }
-      } else if ($nValue === $mFind) {
-        if ($bOnlyParent === true) {
-          return $sKeyParent;
-        }
-        return $sKey;
-      }
-    }
-
-    return false;
-  }
-
-  public function arrayFilterRecursive($aData, $fCallback = null, $bRemoveEmpty = false) {
-    if (empty($aData)) {
-      return $aData;
-    }
-
-    foreach ($aData as $sKey => &$nValue) {
-      // mind the reference
-      if (is_array($nValue)) {
-        $nValue = $this->arrayFilterRecursive($nValue, $fCallback, $bRemoveEmpty);
-        if ($bRemoveEmpty && !(bool) $nValue) {
-          unset($aData[$sKey]);
-        }
-      } else {
-        if (!is_null($fCallback) && !$fCallback($nValue, $sKey)) {
-          unset($aData[$sKey]);
-        } elseif (!(bool) $nValue) {
-          unset($aData[$sKey]);
-        }
-      }
-    }
-    unset($nValue);
-    return $aData;
-  }
-
-  public function arrayReplaceRecursive($aData, $mFind, $mReplace, $sFindType = 'value', $sReplaceType = 'value', $bFindReplace = false, $bRemoveEmpty = false, $bForceArray = false) {
-    if (is_array($aData)) {
-      foreach ($aData as $sKey => $Val) {
-        // Replace with array
-        if (is_array($aData[$sKey]) && $bForceArray === false) {
-          $aData[$sKey] = $this->arrayReplaceRecursive($aData[$sKey], $mFind, $mReplace, $sFindType, $sReplaceType, $bFindReplace, $bRemoveEmpty);
-        } else {
-          // Found find by key
-          if ($sFindType === 'key' && stripos($sKey, $mFind) !== false) {
-            $aData[$sKey] = $this->replaceByType($aData, $sKey, $mFind, $mReplace, $sReplaceType, $bFindReplace);
-            // Remove field by empty value
-            if ($bRemoveEmpty === true && empty($aData[$sKey])) {
-              unset($aData[$sKey]);
-            }
-            // Found find by value
-          } elseif ($sFindType === 'value' && stripos($Val, $mFind) !== false) {
-            $aData[$sKey] = $this->replaceByType($aData, $sKey, $mFind, $mReplace, $sReplaceType, $bFindReplace);
-            // Remove field by empty value or by mFind === mReplace
-            if ($bRemoveEmpty === true && (empty($aData[$sKey]) || $mFind === $mReplace)) {
-              unset($aData[$sKey]);
-            }
-          }
-        }
-      }
-    }
-    return $aData;
-  }
-
-  private function replaceByType($aData, $sKey, $mFind, $mReplace, $sReplaceType, $bFindReplace) {
-    $mValueOfKey = $aData[$sKey];
-    // $sKey == $mFind
-    if ($sReplaceType === 'key') {
-      unset($aData[$sKey]);
-      if ($bFindReplace == true && !is_array($mReplace)) {
-        $aData[$mFind] = str_replace($mFind, $mReplace, $mValueOfKey);
-      } else {
-        $aData[$mFind] = $mReplace;
-      }
-
-      // $mValueOfKey == $mFind
-    } elseif ($sReplaceType === 'value') {
-      if ($bFindReplace == true && !is_array($mReplace)) {
-        $aData[$sKey] = str_replace($mFind, $mReplace, $mValueOfKey);
-      } else {
-        $aData[$sKey] = $mReplace;
-      }
-    }
-    return $aData[$sKey];
-  }
-
-  public function getCurrentURL() {
-    $sPageURL = 'http';
-    if ($_SERVER["HTTPS"] == "on") {$sPageURL .= "s";}
-    $sPageURL .= "://";
-    $sPageURL .= $_SERVER["SERVER_NAME"] . $_SERVER["REQUEST_URI"];
-    return $sPageURL;
+  /**
+   * Convert variable to HTML format
+   *
+   * @param mixed $content Any data
+   *
+   * @return string
+   */
+  public static function variableToHtml(mixed $content): string {
+    $content = print_r($content, true);
+    $content = preg_replace('/(\w+\n\()/', '(', $content);
+    return "<pre>$content</pre>";
   }
 
   /**
-   * Quick create a user wordpress
+   * Get full current url
    *
-   * @param string $userName User name
-   * @param string $email    Email
-   *
-   * @return integer
+   * @return string
    */
-  public static function createUser(string $userName, string $email): integer {
-    $userId = username_exists($userName);
-    if (!$userId and email_exists($email) == false) {
-      $randomPassword = wp_generate_password(12, false);
-      $userId         = wp_create_user($userName, $randomPassword, $email);
-    }
-    return $userId;
+  public static function getCurrentUrl(): string {
+    $ssl        = filter_input(INPUT_SERVER, 'HTTPS');
+    $serverName = filter_input(INPUT_SERVER, 'SERVER_NAME');
+    $requestUri = filter_input(INPUT_SERVER, 'REQUEST_URI');
+
+    $protocol = $ssl === 'on' ? 'https' : 'http';
+
+    return "$protocol://$serverName$requestUri";
   }
 
-  public function updateUserMeta(init $userId, array $data, bool $forceUpdate = false) {
-    $userMeta = [];
-    if (!$forceUpdate) {
-      $userMeta = get_user_meta($userId);
+  /**
+   * Get main domain form url
+   *
+   * @param string $url Url
+   *
+   * @return string
+   */
+  public static function getMainDomain(string $url): string {
+    // Get domain name form string
+    if (preg_match_all('#[-a-zA-Z0-9@:%_\+.~\#?&//=]{2,256}\.[a-z]{2,4}\b(\/[-a-zA-Z0-9@:%_\+.~\#?&//=]*)?#si', $url, $result, PREG_PATTERN_ORDER)) {
+      $domain = $result[0][0];
     }
 
-    // Format data
-    $formatedData = array_map(function (mixed $value) {
-      $mOriginalValue = $value;
-      if (!is_string($value) && !is_numeric($value)) {
-        try {
-          $value = Json::encode($value);
-        } catch (JsonException $e) {
-          $value = $mOriginalValue;
+    $urlParsed = parse_url($domain);
+    $domain    = !empty($urlParsed['host']) ? $urlParsed['host'] : false;
+
+    // Return that url if parse domain fail
+    if ($domain === false && self::isValidDomainName($url) === true) {
+      $domain = $url;
+    }
+
+    return $domain;
+  }
+
+  /**
+   * Check domain is valid format
+   *
+   * @param string $domain Domain
+   *
+   * @return boolean
+   */
+  public static function isValidDomainName(string $domain): bool {
+    return !preg_match("/^[a-z0-9][a-z0-9-._]{1,61}[a-z0-9]\.[a-z]{2,}$/i", $domain) ? false : true;
+  }
+
+  /**
+   * Check url is valid format
+   *
+   * @param string $url Any url
+   * 
+   * @return boolean
+   */
+  public static function isValidUrl(string $url): bool {
+    return !preg_match("/^(?:http(s)?:)?\/\/[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:\/?#[\]@!\$&'\(\)\*\+,;=.]+$/im", $url) ? true : false;
+  }
+
+  /**
+   * Recursive searches the array for a given value and returns the first corresponding key if successful
+   *
+   * @param array   $arrayData  Array data
+   * @param mixed   $search     Search value
+   * @param boolean $onlyParent Only return parent
+   * @param init    $keyParent  Current key parent
+   *
+   * @return init
+   */
+  public static function arraySearchRecursive(array $arrayData, mixed $search, bool $onlyParent = null, init $keyParent = null): init {
+    foreach ($arrayData as $key => $value) {
+      if (is_array($value)) {
+        $keyPass = is_string($key) ? $key : $keyParent;
+
+        $currentKey = self::arraySearchRecursive($value, $search, $onlyParent, $keyPass);
+
+        if ($currentKey !== false) {
+          return $currentKey;
         }
+      } elseif ($value === $search) {
+        return $onlyParent === true ? $keyParent : $key;
       }
-      return is_null($value) ? '' : $value;
-    }, $data);
-
-    if (empty($userMeta['restrict_access_ips']) && !empty($formatedData['restrict_access_ips'])) {
-      update_user_meta($userId, 'restrict_access_ips', $formatedData['restrict_access_ips']);
     }
+
+    return -1;
+  }
+
+  /**
+   * Filters recursive elements of an array using a callback function
+   *
+   * @param array    $arrayData   Array data
+   * @param callable $callback    Callback function
+   * @param boolean  $removeEmpty Remove array if empty value
+   *
+   * @return array
+   */
+  public static function arrayFilterRecursive(array $arrayData, callable $callback, bool $removeEmpty = null): array{
+    if (empty($arrayData)) {
+      return $arrayData;
+    }
+
+    foreach ($arrayData as $key => &$value) {
+      // mind the reference
+      if (is_array($value)) {
+        $value = self::arrayFilterRecursive($value, $callback, $removeEmpty);
+        if ($removeEmpty && !(bool) $value) {
+          unset($arrayData[$key]);
+        }
+        continue;
+      }
+
+      if (Callback::check($callback) && !$callback($value, $key)) {
+        unset($arrayData[$key]);
+      } elseif (!(bool) $value) {
+        unset($arrayData[$key]);
+      }
+
+    }
+    unset($value);
+    return $arrayData;
+  }
+
+  /**
+   * Search and replaces recursive elements by array key or array value
+   *
+   * @param array   $arrayData         Array data
+   * @param mixed   $search            Search value
+   * @param mixed   $replace           Substitute content
+   * @param string  $typeSearch        Type of search value
+   * @param string  $typeReplace       Replace by Key or Value
+   * @param boolean $findAndReplace    Find value and replace or replace value
+   * @param boolean $removeEmpty       Remove array if empty value
+   * @param boolean $forceReplaceArray Force replace that is a array
+   *
+   * @return array
+   */
+  public static function arrayReplaceRecursive(array $arrayData, mixed $search, mixed $replace, string $typeSearch = 'value', string $typeReplace = 'value', bool $findAndReplace = null, bool $removeEmpty = null, bool $forceReplaceArray = null): array{
+    if (!is_array($arrayData)) {
+      return $arrayData;
+    }
+
+    $funcRemoveEmpty = function (mixed $arrayKey, bool $condition) use ($removeEmpty, &$arrayData) {
+      if ($condition && $removeEmpty) {
+        unset($arrayData[$arrayKey]);
+      }
+    };
+
+    foreach ($arrayData as $arrayKey => $arrayValue) {
+      // Replace with array
+      if (is_array($arrayData[$arrayKey]) && $forceReplaceArray === false) {
+        $arrayData[$arrayKey] = self::arrayReplaceRecursive($arrayData[$arrayKey], $search, $replace, $typeSearch, $typeReplace, $findAndReplace, $removeEmpty);
+        continue;
+      }
+
+      // Search by Key
+      if ($typeSearch === 'key' && stripos($arrayKey, $search) !== false) {
+        $arrayData[$arrayKey] = self::replaceValueArray($arrayData, $arrayKey, $search, $replace, $typeReplace, $findAndReplace);
+      }
+
+      // Search by Value
+      elseif ($typeSearch === 'value' && stripos($arrayValue, $search) !== false) {
+        $arrayData[$arrayKey] = self::replaceValueArray($arrayData, $arrayKey, $search, $replace, $typeReplace, $findAndReplace);
+      }
+
+      // Remove field if value is empty or search === replace
+      $funcRemoveEmpty($arrayKey, $typeSearch === 'key' || $search === $replace);
+    }
+
+    return $arrayData;
+  }
+
+  /**
+   * Replace value array by key or value
+   *
+   * @param array   $arrayData      Array data
+   * @param string  $arrayKey       Array key value
+   * @param mixed   $search         Search value
+   * @param mixed   $replace        Substitute content
+   * @param string  $typeReplace    Replace by Key or Value
+   * @param boolean $findAndReplace Find value and replace or replace value
+   *
+   * @return array
+   */
+  public static function replaceValueArray(array $arrayData, string $arrayKey, mixed $search, mixed $replace, string $typeReplace, bool $findAndReplace): array{
+    $value = $arrayData[$arrayKey];
+
+    // $arrayKey == $search
+    if ($typeReplace === 'key') {
+      unset($arrayData[$arrayKey]);
+      if ($findAndReplace == true && !is_array($replace)) {
+        $arrayData[$search] = str_replace($search, $replace, $value);
+        return $arrayData[$arrayKey];
+      }
+      $arrayData[$search] = $replace;
+    }
+
+    // $value == $search
+    if ($typeReplace === 'value') {
+      if ($findAndReplace == true && !is_array($replace)) {
+        $arrayData[$arrayKey] = str_replace($search, $replace, $value);
+        return $arrayData[$arrayKey];
+      }
+      $arrayData[$arrayKey] = $replace;
+    }
+
+    return $arrayData[$arrayKey];
   }
 
   /**
