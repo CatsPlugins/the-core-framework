@@ -246,25 +246,25 @@ final class ModuleConfig {
    */
   private static function formatOptionValue(mixed $value, string $type, int $mode): mixed {
     switch ($type) {
-    case 'string':
-      $value = strval($value);
-      break;
-    case 'integer':
-      $value = intval($value);
-      break;
-    case 'number':
-      $value = floatval($value);
-      break;
-    case 'boolean':
-      $value = boolval($value) ? 1 : 0;
-      break;
-    case 'array':
-      if (is_array($value)) {
-        $value = Json::encode($value);
-      } else {
-        $value = $mode === self::WRITE ? Json::decode($value, Json::FORCE_ARRAY) : [$value];
-      }
-      break;
+      case 'string':
+        $value = strval($value);
+        break;
+      case 'integer':
+        $value = intval($value);
+        break;
+      case 'number':
+        $value = floatval($value);
+        break;
+      case 'boolean':
+        $value = boolval($value) ? 1 : 0;
+        break;
+      case 'array':
+        if (is_array($value)) {
+          $value = Json::encode($value);
+        } else {
+          $value = $mode === self::WRITE ? Json::decode($value, Json::FORCE_ARRAY) : [$value];
+        }
+        break;
     }
 
     return $value;

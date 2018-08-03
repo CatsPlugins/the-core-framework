@@ -54,13 +54,13 @@ final class ModuleCore {
     self::$textdomain    = $config['textdomain'];
     self::$pluginPath    = $config['plugin_path'];
     self::$pluginVersion = $config['plugin_version'];
-    
-    self::$logPath      = $pluginPath . DS . 'log' . DS;
-    self::$cachePath    = $pluginPath . DS . 'cache' . DS;
-    self::$assetsPath   = $pluginPath . DS . 'assets' . DS;
-    self::$configPath   = $pluginPath . DS . 'config' . DS;
-    self::$modulesPath  = $pluginPath . DS . 'modules' . DS;
-    self::$languagePath = $pluginPath . DS . 'languages' . DS;
+
+    self::$logPath      = self::$pluginPath . DS . 'log' . DS;
+    self::$cachePath    = self::$pluginPath . DS . 'cache' . DS;
+    self::$assetsPath   = self::$pluginPath . DS . 'assets' . DS;
+    self::$configPath   = self::$pluginPath . DS . 'config' . DS;
+    self::$modulesPath  = self::$pluginPath . DS . 'modules' . DS;
+    self::$languagePath = self::$pluginPath . DS . 'languages' . DS;
 
     self::loadModules($config['refresh_modules']);
   }
@@ -76,6 +76,7 @@ final class ModuleCore {
     // Autoload all module files in self::$modulesPath
     $moduleLoader = new RobotLoader;
     $moduleLoader->addDirectory(self::$modulesPath);
+    $moduleLoader->setTempDirectory(self::$cachePath);
     $moduleLoader->setAutoRefresh($autoRefresh);
     $moduleLoader->register();
   }

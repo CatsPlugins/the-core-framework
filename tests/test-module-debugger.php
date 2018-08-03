@@ -9,13 +9,6 @@
  * @author   Won <won.baria@email.com>
  * @license  GPLv2 https://www.gnu.org
  * @link     https://catsplugins.com
- *
- * Better Comments (aaron-bond.better-comments):
- * ! Alerts
- * ? Queries
- * * Highlights
- * TODO: todo
- * //// This is an old comment
  */
 
 declare (strict_types = 1);

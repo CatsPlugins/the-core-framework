@@ -15,13 +15,7 @@
     "guzzlehttp/guzzle": "^5.3"
   },
   "require-dev": {
-    "tracy/tracy": "@stable",
-    "latte/latte": "@stable",
-    "nette/neon": "@stable",
-    "nette/utils": "@stable",
-    "nette/caching": "@stable",
-    "nette/robot-loader": "@stable",
-    "guzzlehttp/guzzle": "@stable"
+
   },
   "config": {
     "platform": {
@@ -31,8 +25,10 @@
     "optimize-autoloader": true
   },
   "autoload": {
+    "files": ["src/the-core-framework.php"],
     "psr-4": {
-      "CatsPlugins\\TheCore": "src"
+      "CatsPlugins\\TheCore\\": "src"
     }
-  }
+  },
+  "minimum-stability": "dev"
 }

@@ -57,13 +57,14 @@ final class ModuleRestAPI {
    * Load modules RestApi
    *
    * @param boolean $autoRefresh Auto refresh modules
-   * 
+   *
    * @return void
    */
   private function loadModules(bool $autoRefresh): void {
     // Autoload all module files in self::$pathRestModule
     $moduleLoader = new RobotLoader;
     $moduleLoader->addDirectory(self::$pathRestModule);
+    $moduleLoader->setTempDirectory(ModuleCore::$cachePath);
     $moduleLoader->setAutoRefresh($autoRefresh);
     $moduleLoader->register();
   }
