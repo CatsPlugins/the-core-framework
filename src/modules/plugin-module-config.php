@@ -18,11 +18,11 @@ namespace CatsPlugins\TheCore;
 // Blocking access direct to the plugin
 defined('TCF_PATH_BASE') or die('No script kiddies please!');
 
-use Nette\Neon\Exception;
+use CatsPlugins\TheCore\ModuleHelper;
 use Nette\Neon\Neon;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Finder;
-use CatsPlugins\TheCore\ModuleHelper;
+use Nette\Utils\Json;
 
 /**
  * The Module Config
@@ -38,8 +38,12 @@ use CatsPlugins\TheCore\ModuleHelper;
 final class ModuleConfig {
   private static $configFiles;
   private static $config;
-  
-  public const add = self::class . '::add';
+
+  // Option mode format
+  private const READ  = 1;
+  private const WRITE = 2;
+
+  public const ADD = self::class . '::add';
 
   /**
    * Add and initialization multiple configuration file
@@ -75,11 +79,11 @@ final class ModuleConfig {
    * Get config file path
    *
    * @param string $name Name of neon file
-   * 
+   *
    * @return string
    */
   private static function getConfigFilePath(string $name): string {
-    return function(array $configFiles) use($name) {
+    return function (array $configFiles) use ($name) {
       return $configFiles[$name];
     };
   }
@@ -94,7 +98,7 @@ final class ModuleConfig {
    *
    * @return array
    */
-  private static function get(string $name, array $configFiles, callable $readFile, callable $decodeContent): array{
+  private static function getConfigValue(string $name, array $configFiles, callable $readFile, callable $decodeContent): array{
     $getPath     = self::getConfigFilePath($configFiles);
     $fileContent = $readFile($getPath($name));
 
@@ -111,103 +115,158 @@ final class ModuleConfig {
   /**
    * Get and set config file
    *
-   * @param string $name      Name of neon file
-   * @param array  $arguments hum.. researching
+   * @param string $configName Name of neon file
+   * @param array  $arguments  An option_key and option_value for update WordPress option
    *
-   * @return stdClass
+   * @return mixed
    */
-  public static function __callStatic(string $name, array $arguments): stdClass {
-    // Method set value to config file
-    if (!empty($arguments)) {
-      // ! magic method __get not work with static variant
-      // TODO: research!
+  public static function __callStatic(string $configName, array $arguments): mixed {
+    $optionKey   = $arguments[0] ?? null;
+    $optionValue = $arguments[1] ?? null;
 
-      // Unset current data config
-      //unset(self::$config);
+    // Special mode for WP Option
+    if ($configName === 'Option' && $optionKey !== null && $optionKey !== 'raw') {
+
+      // Data update mode
+      if ($optionValue !== null) {
+        return self::setOption($optionKey, $optionValue);
+      }
     }
 
     // Only read configuration file in first time
     if (!isset(self::$config[$name])) {
 
-      // Get config
-      self::$config[$name] = self::get($name, self::$config, [FileSystem::class, 'read'], [Neon::class, 'decode']);
+      // If config name is an Option WP
+      if ($configName === 'Option' && $optionKey !== 'raw') {
+        self::$config[$name] = self::getOptions();
+      } else {
+        // Get config
+        self::$config[$name] = self::getConfigValue($name, self::$config, [FileSystem::class, 'read'], [Neon::class, 'decode']);
+      }
 
       // Convert to object type
       self::$config[$name] = ModuleHelper::arrayToObject(self::$config[$name]);
+    }
 
+    // Mode get option structure value by name
+    if ($configName === 'Option' && $optionValue === null) {
+      return self::getOptionsStructureValue($optionKey);
     }
 
     return self::$config[$name];
   }
 
-  ///////////// Action /////////////
+  /**
+   * Get all option structure value
+   *
+   * @param string $structName Struct name of option
+   *
+   * @return array
+   */
+  private static function getOptionsStructureValue(string $structName): array{
+    $configOption      = self::Option('raw');
+    $optionStructValue = [];
 
-  public function getOption($sKey = '', $bRaw = false) {
-    $nValue = empty($sKey) ? false : get_option($sKey, false);
-
-    if ($nValue === false && isset($this->option[$sKey]['value'])) {
-      $nValue = $this->option[$sKey]['value'];
+    foreach ($configOption as $optionKey => $optionStruct) {
+      $optionStructValue[$optionKey] = $optionStruct[$structName] ?? null;
     }
 
-    if ($bRaw === true || !isset($this->option[$sKey]['type'])) {
-      return $nValue;
-    }
-
-    switch ($this->option[$sKey]['type']) {
-    case 'string':
-      $nValue = strval($nValue);
-      break;
-    case 'integer':
-      $nValue = intval($nValue);
-      break;
-    case 'number':
-      $nValue = floatval($nValue);
-      break;
-    case 'boolean':
-      $nValue = boolval($nValue);
-      break;
-    case 'array':
-      if (!is_array($nValue)) {
-        $nValue = json_decode($nValue, true);
-      }
-      break;
-    }
-
-    return $nValue;
+    return $optionStructValue;
   }
 
-  public function setOption($sKey, $nValue) {
-    $bResult = false;
+  /**
+   * Get all option managed
+   *
+   * @return array
+   */
+  private static function getOptions(): array{
+    // Load all wp option
+    $wpOptions = wp_load_alloptions();
 
-    switch ($this->option[$sKey]['type']) {
+    // Load all option managed
+    $allOptionManaged = array_intersect_key($wpOptions, self::Option('raw'));
+
+    return $allOptionManaged;
+  }
+
+  /**
+   * Get WP Option with data strict type
+   *
+   * @param string  $key      WP Option key
+   * @param boolean $forceRaw Force get option with raw data
+   *
+   * @return mixed
+   */
+  private static function getOption(string $key, bool $forceRaw = null): mixed {
+    if (empty($key)) {
+      return null;
+    }
+
+    // Get Option config with raw data
+    $configOption = self::Option('raw')->$key;
+    $type         = $configOption['type'] ?? null;
+
+    // Get current value or default value
+    $value = get_option($key, $configOption['default']);
+
+    // Returns raw data if a data type is not set, just like the WP Option is not managed by this plugin
+    if ($forceRaw === true || $type === null) {
+      return $value;
+    }
+
+    return self::formatOptionValue($value, $type, self::READ);
+  }
+
+  /**
+   * Set WP Option whether or not data strict type
+   *
+   * @param string $key   WP Option key
+   * @param mixed  $value New value
+   *
+   * @return boolean
+   */
+  private static function setOption(string $key, mixed $value): bool {
+    // Get Option config with raw data
+    $configOption = self::Option('raw')->$key;
+    $type         = $configOption['type'] ?? null;
+
+    $value = self::formatOptionValue($value, $type, self::WRITE);
+
+    return update_option($key, $value);
+  }
+
+  /**
+   * Formated option value by type has been defined
+   *
+   * @param mixed  $value Raw option value
+   * @param string $type  Type of option value
+   * @param int    $mode  Format data mode
+   *
+   * @return mixed
+   */
+  private static function formatOptionValue(mixed $value, string $type, int $mode): mixed {
+    switch ($type) {
     case 'string':
-      $nValue = strval($nValue);
+      $value = strval($value);
       break;
     case 'integer':
-      $nValue = intval($nValue);
+      $value = intval($value);
       break;
     case 'number':
-      $nValue = floatval($nValue);
+      $value = floatval($value);
       break;
     case 'boolean':
-      $nValue = boolval($nValue) ? 1 : 0;
+      $value = boolval($value) ? 1 : 0;
       break;
     case 'array':
-      if (is_array($nValue)) {
-        $nValue = json_encode($nValue, true);
-      } elseif (!is_array($nValue)) {
-        $nValue = [$nValue];
+      if (is_array($value)) {
+        $value = Json::encode($value);
+      } else {
+        $value = $mode === self::WRITE ? Json::decode($value, Json::FORCE_ARRAY) : [$value];
       }
       break;
-    default:
-      return false;
     }
 
-    //Check for valid options
-    if (!empty($this->option[$sKey]['type'])) {
-      $bResult = update_option($sKey, $nValue);
-    }
-
-    return $bResult;
+    return $value;
   }
 }

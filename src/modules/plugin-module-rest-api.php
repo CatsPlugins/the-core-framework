@@ -15,6 +15,8 @@ declare (strict_types = 1);
 
 namespace CatsPlugins\TheCore;
 
+use Nette\Loaders\RobotLoader;
+
 // Blocking access direct to the plugin
 defined('TCF_PATH_BASE') or die('No script kiddies please!');
 
@@ -30,25 +32,39 @@ defined('TCF_PATH_BASE') or die('No script kiddies please!');
  * @link     https://catsplugins.com
  */
 final class ModuleRestAPI {
-  
-  public function init(array $config):void {
-    defined($name) or define($name, $value);
-    define('STS_API_VERSION', 'v1');
-    define('STS_API_NAMESPACE', TCF_TEXTDOMAIN.'/' . STS_API_VERSION . '/');
-    define('STS_API_PATH', TCF_INCLUDES . 'rest-api' . DS);
-    define('STS_API_NONCE', wp_create_nonce('wp_rest'));
+  public static $nonce;
+  public static $version;
+  public static $namespace;
+  public static $pathRestModule;
+
+  /**
+   * Initialization REST API
+   *
+   * @param array $config Config custom REST API [version, namespace]
+   *
+   * @return void
+   */
+  public function init(array $config): void {
+    self::$version        = $config['version'];
+    self::$nonce          = wp_create_nonce('wp_rest');
+    self::$namespace      = ModuleCore::$textDomain . '/' . self::$version . '/';
+    self::$pathRestModule = ModuleCore::$modulesPath . $config['namespace'] . DS;
+
+    self::loadModules($config['refresh_modules']);
   }
 
-  ///////////// API Purchase/Active /////////////
-  private function setupRestApiEnvato() {
-    require_once STS_API_PATH . 'rest-api-envato.php';
-    $oApi = new RestApiEnvato($this->TCF);
-    add_action('rest_api_init', [$oApi, 'registerRestRoute'], 10);
-  }
-
-  private function setupRestApiUsers() {
-    require_once STS_API_PATH . 'rest-api-users.php';
-    $oApi = new RestApiUser($this->TCF);
-    add_action('rest_api_init', [$oApi, 'registerRestRoute'], 10);
+  /**
+   * Load modules RestApi
+   *
+   * @param boolean $autoRefresh Auto refresh modules
+   * 
+   * @return void
+   */
+  private function loadModules(bool $autoRefresh): void {
+    // Autoload all module files in self::$pathRestModule
+    $moduleLoader = new RobotLoader;
+    $moduleLoader->addDirectory(self::$pathRestModule);
+    $moduleLoader->setAutoRefresh($autoRefresh);
+    $moduleLoader->register();
   }
 }

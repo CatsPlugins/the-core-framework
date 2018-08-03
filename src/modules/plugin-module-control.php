@@ -33,40 +33,39 @@ final class ModuleControl {
   /**
    * Handle event when activate plugin
    *
+   * @param callable $callback Callback
+   * 
    * @return void
    */
-  public static function handleEventActivatePlugin(): void {
-
+  public static function handleEventActivatePlugin(callable $callback): void {
+    register_activation_hook(ModuleCore::$pluginPath, $callback);
   }
 
   /**
    * Handle event when deactivate plugin
    *
+   * @param callable $callback Callback
+   * 
    * @return void
    */
-  public static function handleEventDeactivatePlugin(): void {
-
+  public static function handleEventDeactivatePlugin(callable $callback): void {
+    register_deactivation_hook(ModuleCore::$pluginPath, $callback);
   }
 
   /**
-   * Setup language
-   *
-   * @param string $textDomain Plugin TextDomain
+   * Initialization language
    *
    * @return void
    */
-  public static function setupLanguage(string $textDomain): void {
-    // TODO: check define conflict
-    defined('TCF_TEXTDOMAIN') ? null : define('TCF_TEXTDOMAIN', $textDomain);
-
-    load_plugin_textdomain($textDomain, false, basename(TCF_PATH_BASE) . DS . 'languages' . DS);
+  public static function initLanguage(): void {
+    load_plugin_textdomain(ModuleCore::$textDomain, false, ModuleCore::$languagePath);
   }
 
   /**
    * Lazy and smart register assets files
    *
    * @param array $urls An array config assets [url, deps, ver, position]
-   * 
+   *
    * @return array
    */
   public static function registerAssetsFiles(array $urls): array{
@@ -113,10 +112,8 @@ final class ModuleControl {
 
     // If url is not absolute, generate a absolute url
     if (!isset($parsedUrl['host']) || !ModuleHelper::isValidUrl($url)) {
-
-      // TODO: Replace TCF_URL, TCF_PATH_BASE define, ex: ModuleConfig::get('plugin', 'assets_url')
-      $assetsUrl    = TCF_URL;
-      $assetsPath   = TCF_PATH_BASE;
+      $assetsUrl    = ModuleCore::$assetsUrl;
+      $assetsPath   = ModuleCore::$assetsPath;
       $basenameFile = $parsedPath['basename'];
 
       // Check file exist
@@ -129,12 +126,11 @@ final class ModuleControl {
       $url          = "$assetsUrl/$fileExt/$basenameFile";
     }
 
-    // TODO: Replace TCF_TEXTDOMAIN define, ex: ModuleConfig::get('plugin', 'textdomain')
     if ($fileExt === 'js') {
       $position = position === 'footer' ? true : false;
-      return wp_register_script(TCF_TEXTDOMAIN . '-' . $filename, $url, $deps, $version, $position);
+      return wp_register_script(ModuleCore::$textDomain . '-' . $filename, $url, $deps, $version, $position);
     } else {
-      return wp_register_style(TCF_TEXTDOMAIN . '-' . $filename, $url, $deps, $version, $position);
+      return wp_register_style(ModuleCore::$textDomain . '-' . $filename, $url, $deps, $version, $position);
     }
   }
 }

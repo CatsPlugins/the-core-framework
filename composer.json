@@ -1,7 +1,8 @@
 {
-  "name": "catsplugins/the-core",
+  "name": "catsplugins/the-core-framework",
   "license": "MIT",
-  "type": "project",
+  "keywords": ["framework", "plugin", "wordpress"],
+  "type": "library",
   "description": "The Plugin Core Framework for Wordpress",
   "require": {
     "php": ">=7.1",
@@ -26,14 +27,12 @@
     "platform": {
       "php": "7.1"
     },
-    "preferred-install": {
-      "*": "dist"
-    },
-    "sort-packages": true
+    "sort-packages": true,
+    "optimize-autoloader": true
   },
   "autoload": {
-    "psr-0" : {
-        "CatsPlugins\\TheCore" : "src"
+    "psr-4": {
+      "CatsPlugins\\TheCore": "src"
     }
-}
+  }
 }

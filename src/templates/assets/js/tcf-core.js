@@ -1,3 +1,5 @@
+/*jshint esversion: 6 */
+
 var tcfLib;
 readyDOM(() => {
   jQuery(document).ready($ => {
@@ -6,7 +8,7 @@ readyDOM(() => {
       initEvent: () => {
         // Handle event        
       }
-    }
+    };
 
     // Init Event Element
     setTimeout(function () {

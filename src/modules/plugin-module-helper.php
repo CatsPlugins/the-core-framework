@@ -36,6 +36,33 @@ defined('TCF_PATH_BASE') or die('No script kiddies please!');
  */
 
 final class ModuleHelper {
+  /**
+   * Whether current user has a specific capability
+   *
+   * @param string $capability Wordpress capability
+   *
+   * @return boolean
+   */
+  public static function currentUserHave(string $capability): bool {
+    // Load function wp_get_current_user if not exist
+    if (!function_exists('wp_get_current_user')) {
+      include ABSPATH . 'wp-includes/pluggable.php';
+    }
+
+    return current_user_can($capability) ? true : false;
+  }
+
+  /**
+   * Whether or not in dev mode
+   *
+   * @param string $domain Current domain
+   *
+   * @return boolean
+   */
+  public static function isDevMode(string $domain): bool {
+    $serverName = filter_input(INPUT_SERVER, 'SERVER_NAME');
+    return $domain === $serverName;
+  }
 
   /**
    * Auto define variant by an array
@@ -166,7 +193,7 @@ final class ModuleHelper {
    * Check url is valid format
    *
    * @param string $url Any url
-   * 
+   *
    * @return boolean
    */
   public static function isValidUrl(string $url): bool {

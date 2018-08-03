@@ -39,7 +39,7 @@ final class ModuleDebugger {
    * Init Module Debugger
    *
    * @param boolean $forceEnable Force enable Debugger
-   * 
+   *
    * @return void
    */
   public static function init(bool $forceEnable = null) {
@@ -58,11 +58,15 @@ final class ModuleDebugger {
     Debugger::$maxLength    = 650; // default: 150
     Debugger::$strictMode   = false;
 
-    if (current_user_can('administrator') || $forceEnable) {
-      Debugger::enable(Debugger::DEVELOPMENT);
+    self::enableDebugBar(true);
+
+    $isDevMode = ModuleHelper::isDevMode(ModuleConfig::Core()->DEV_ON);
+
+    if ((current_user_can('administrator') && $isDevMode) || $forceEnable) {
+      Debugger::enable(Debugger::DEVELOPMENT, ModuleCore::$logPath);
     } else {
       // PRODUCTION
-      Debugger::enable(Debugger::PRODUCTION);
+      Debugger::enable(Debugger::PRODUCTION, ModuleCore::$logPath);
     }
 
     error_reporting(E_ALL & ~E_NOTICE);
@@ -70,5 +74,27 @@ final class ModuleDebugger {
     if (!empty($output)) {
       bdump($output);
     }
+  }
+
+  /**
+   * Debug logging
+   *
+   * @param mixed $data Any data save to log
+   *
+   * @return void
+   */
+  public static function log(mixed $data): void {
+    Debugger::log($data);
+  }
+
+  /**
+   * Enable debug bar
+   *
+   * @param boolean $showBar 
+   *
+   * @return void
+   */
+  public static function enableDebugBar(bool $showBar): void {
+    Debugger::$showBar = $showBar;
   }
 }

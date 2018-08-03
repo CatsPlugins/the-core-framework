@@ -30,6 +30,9 @@ defined('ABSPATH') or die('No script kiddies please!');
 // Blocking called direct to the plugin
 defined('WPINC') or die('No script kiddies please!');
 
+// Blocking called multiple plugin core
+defined('TCF_PATH_BASE') or die('Multiple plugin core loaded!');
+
 // Boolean clear
 defined('ENABLE') or define('ENABLE', true);
 defined('DISABLE') or define('DISABLE', false);
@@ -42,7 +45,7 @@ define('TCF_PATH_BASE', realpath(__FILE__) . DS);
 define('TCF_PATH_MODULES', TCF_PATH_BASE . 'modules' . DS);
 define('TCF_PATH_TEMPLATES', TCF_PATH_BASE . 'templates' . DS);
 
-// Autoload all module file in TCF_PATH_MODULES
+// Autoload all module files in TCF_PATH_MODULES
 $TCF_Loader = new RobotLoader;
 $TCF_Loader->addDirectory(TCF_PATH_MODULES);
 $TCF_Loader->setAutoRefresh(true);
