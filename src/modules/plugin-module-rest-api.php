@@ -15,7 +15,9 @@ declare (strict_types = 1);
 
 namespace CatsPlugins\TheCore;
 
+use Nette\InvalidArgumentException;
 use Nette\Loaders\RobotLoader;
+use Nette\Utils\Callback;
 
 // Blocking access direct to the plugin
 defined('TCF_PATH_BASE') or die('No script kiddies please!');
@@ -40,17 +42,21 @@ final class ModuleRestAPI {
   /**
    * Initialization REST API
    *
-   * @param array $config Config custom REST API [version, namespace]
+   * @param array $config Config custom REST API [version, namespace, refresh_modules, autoload_modules]
    *
    * @return void
    */
-  public function init(array $config): void {
+  public static function init(array $config): void {
     self::$version        = $config['version'];
     self::$nonce          = wp_create_nonce('wp_rest');
-    self::$namespace      = ModuleCore::$textDomain . '/' . self::$version . '/';
+    self::$namespace      = $config['namespace'] . '/' . self::$version;
     self::$pathRestModule = ModuleCore::$modulesPath . $config['namespace'] . DS;
 
-    self::loadModules($config['refresh_modules']);
+    $listClass = self::loadModules($config['refresh_modules'] ?? false);
+
+    if ($config['autoload_modules'] === true) {
+      self::initModules($listClass);
+    }
   }
 
   /**
@@ -58,14 +64,33 @@ final class ModuleRestAPI {
    *
    * @param boolean $autoRefresh Auto refresh modules
    *
-   * @return void
+   * @return array
    */
-  private function loadModules(bool $autoRefresh): void {
+  private static function loadModules(bool $autoRefresh): array{
     // Autoload all module files in self::$pathRestModule
     $moduleLoader = new RobotLoader;
     $moduleLoader->addDirectory(self::$pathRestModule);
     $moduleLoader->setTempDirectory(ModuleCore::$cachePath);
     $moduleLoader->setAutoRefresh($autoRefresh);
     $moduleLoader->register();
+
+    return $moduleLoader->getIndexedClasses();
+  }
+
+  /**
+   * Auto Initialization modules
+   *
+   * @param array $listClass List loaded class 
+   * 
+   * @return void
+   */
+  private static function initModules(array $listClass): void {
+    foreach ($listClass as $className => $filePath) {
+      try {
+        Callback::invoke([$className, 'init']);
+      } catch (InvalidArgumentException $e) {
+        bdump($e, $filePath);
+      }
+    }
   }
 }

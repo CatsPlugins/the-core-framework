@@ -21,4 +21,4 @@ if (!include __DIR__ . '/../vendor/autoload.php') {
   exit(1);
 }
 
-ModuleDebugger::init();
+ModuleDebugger::init(false);

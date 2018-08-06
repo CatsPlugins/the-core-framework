@@ -19,6 +19,7 @@ use GuzzleHttp\Client;
 use Nette\Utils\Callback;
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
+use \stdClass;
 
 // Blocking access direct to the plugin
 defined('TCF_PATH_BASE') or die('No script kiddies please!');
@@ -105,10 +106,11 @@ final class ModuleHelper {
    */
   public static function objectToArray(stdClass $input): array{
     try {
-      return Json::decode(Json::encode($input), Json::FORCE_ARRAY);
+      $output = Json::decode(Json::encode($input), Json::FORCE_ARRAY);
     } catch (JsonException $e) {
-      return ['error' => $e->getMessage()];
+      $output = ['error' => $e->getMessage()];
     }
+    return (array) $output;
   }
 
   /**
@@ -120,10 +122,11 @@ final class ModuleHelper {
    */
   public static function arrayToObject(array $input): stdClass {
     try {
-      return Json::decode(Json::encode($input));
+      $output = Json::decode(Json::encode($input));
     } catch (JsonException $e) {
-      return (object) ['error' => $e->getMessage()];
+      $output = ['error' => $e->getMessage()];
     }
+    return (object) $output;
   }
 
   /**
@@ -133,7 +136,7 @@ final class ModuleHelper {
    *
    * @return string
    */
-  public static function variableToHtml(mixed $content): string {
+  public static function variableToHtml($content): string {
     $content = print_r($content, true);
     $content = preg_replace('/(\w+\n\()/', '(', $content);
     return "<pre>$content</pre>";
@@ -210,7 +213,7 @@ final class ModuleHelper {
    *
    * @return init
    */
-  public static function arraySearchRecursive(array $arrayData, mixed $search, bool $onlyParent = null, init $keyParent = null): init {
+  public static function arraySearchRecursive(array $arrayData, $search, bool $onlyParent = null, init $keyParent = null): init {
     foreach ($arrayData as $key => $value) {
       if (is_array($value)) {
         $keyPass = is_string($key) ? $key : $keyParent;
@@ -277,12 +280,12 @@ final class ModuleHelper {
    *
    * @return array
    */
-  public static function arrayReplaceRecursive(array $arrayData, mixed $search, mixed $replace, string $typeSearch = 'value', string $typeReplace = 'value', bool $findAndReplace = null, bool $removeEmpty = null, bool $forceReplaceArray = null): array{
+  public static function arrayReplaceRecursive(array $arrayData, $search, $replace, string $typeSearch = 'value', string $typeReplace = 'value', bool $findAndReplace = null, bool $removeEmpty = null, bool $forceReplaceArray = null): array{
     if (!is_array($arrayData)) {
       return $arrayData;
     }
 
-    $funcRemoveEmpty = function (mixed $arrayKey, bool $condition) use ($removeEmpty, &$arrayData) {
+    $funcRemoveEmpty = function ($arrayKey, bool $condition) use ($removeEmpty, &$arrayData) {
       if ($condition && $removeEmpty) {
         unset($arrayData[$arrayKey]);
       }
@@ -324,7 +327,7 @@ final class ModuleHelper {
    *
    * @return array
    */
-  public static function replaceValueArray(array $arrayData, string $arrayKey, mixed $search, mixed $replace, string $typeReplace, bool $findAndReplace): array{
+  public static function replaceValueArray(array $arrayData, string $arrayKey, $search, $replace, string $typeReplace, bool $findAndReplace): array{
     $value = $arrayData[$arrayKey];
 
     // $arrayKey == $search

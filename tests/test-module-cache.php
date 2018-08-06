@@ -18,15 +18,18 @@ if (!include __DIR__ . '/../vendor/autoload.php') {
   exit(1);
 }
 
+$keyCache = 'abc';
+
 // Init
-ModuleCache::init(tmpfile());
+ModuleCache::init('api');
 
-ModuleCache::setKeyCache('abc');
+// Call method cache storage
+ModuleCache::Api('clear');
 
-$keyCache = ModuleCache::getKeyCache();
+// Save cache
+ModuleCache::Api($keyCache, [1, 2, 3]);
 
-ModuleCache::$api->save($keyCache, [1, 2, 3]);
-
-$myCached = ModuleCache::$api->load($keyCache);
+// Load cache
+$myCached = ModuleCache::Api($keyCache);
 
 bdump($myCached);

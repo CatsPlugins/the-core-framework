@@ -32,7 +32,7 @@ defined('TCF_PATH_BASE') or die('No script kiddies please!');
  * @link     https://catsplugins.com
  */
 final class ModuleCore {
-  public static $textdomain;
+  public static $textDomain;
   public static $pluginPath;
   public static $pluginVersion;
 
@@ -43,16 +43,18 @@ final class ModuleCore {
   public static $modulesPath;
   public static $languagePath;
 
+  public static $assetsUrl;
+
   /**
    * Initialization Module
    *
-   * @param array $config Config plugin [textdomain, pluginVersion, pluginPath]
+   * @param array $config Config plugin [textDomain, pluginVersion, pluginPath]
    *
    * @return void
    */
   public static function init(array $config): void {
-    self::$textdomain    = $config['textdomain'];
-    self::$pluginPath    = $config['plugin_path'];
+    self::$textDomain    = $config['textdomain'];
+    self::$pluginPath    = realpath(plugin_dir_path($config['plugin_path'])) . DS;
     self::$pluginVersion = $config['plugin_version'];
 
     self::$logPath      = self::$pluginPath . DS . 'log' . DS;
@@ -61,6 +63,8 @@ final class ModuleCore {
     self::$configPath   = self::$pluginPath . DS . 'config' . DS;
     self::$modulesPath  = self::$pluginPath . DS . 'modules' . DS;
     self::$languagePath = self::$pluginPath . DS . 'languages' . DS;
+
+    self::$assetsUrl = plugin_dir_url($config['plugin_path']) . 'assets';
 
     self::loadModules($config['refresh_modules']);
   }

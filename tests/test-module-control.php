@@ -21,6 +21,14 @@ if (!include __DIR__ . '/../vendor/autoload.php') {
   exit(1);
 }
 
-ModuleControl::handleEventActivatePlugin();
+ModuleControl::handleEventActivatePlugin(
+  function () {
+    bdump('Plugin has been activated');
+  }
+);
 
-ModuleControl::handleEventDeactivatePlugin();
+ModuleControl::handleEventDeactivatePlugin(
+  function () {
+    bdump('Plugin has been deactivated');
+  }
+);

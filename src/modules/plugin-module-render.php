@@ -62,7 +62,7 @@ final class ModuleRender {
    *
    * @return void
    */
-  public static function toText(mixed $data): void {
+  public static function toText($data): void {
     $content = print_r($data, true);
     //$content = preg_replace('/(\w+\n\()/', '(', $content);
 
@@ -83,7 +83,7 @@ final class ModuleRender {
    *
    * TODO: make with Nette.Utils.Html
    */
-  public static function toListHtml(mixed $array): void {
+  public static function toListHtml($array): void {
     if (is_object($array)) {
       $array = ModuleHelper::objectToArray($array);
     }

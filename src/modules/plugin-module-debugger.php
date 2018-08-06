@@ -20,9 +20,6 @@ use Tracy\Debugger;
 // Blocking access direct to the plugin
 defined('TCF_PATH_BASE') or die('No script kiddies please!');
 
-// Blocking access direct to the plugin
-defined('ABSPATH') or die('No script kiddies please!');
-
 /**
  * The Module Debugger
  *
@@ -53,14 +50,18 @@ final class ModuleDebugger {
       ob_end_clean();
     }
 
+    $isDevMode = false;
+    if (!$forceEnable) {
+      $devDomain = ModuleConfig::Core()->DEV_DOMAIN ?? '';
+      $isDevMode = ModuleHelper::isDevMode($devDomain);
+    }
+
     Debugger::$showLocation = true;
     Debugger::$maxDepth     = 4; // default: 3
     Debugger::$maxLength    = 650; // default: 150
     Debugger::$strictMode   = false;
 
     self::enableDebugBar(true);
-
-    $isDevMode = ModuleHelper::isDevMode(ModuleConfig::Core()->DEV_ON);
 
     if ((current_user_can('administrator') && $isDevMode) || $forceEnable) {
       Debugger::enable(Debugger::DEVELOPMENT, ModuleCore::$logPath);
@@ -83,14 +84,14 @@ final class ModuleDebugger {
    *
    * @return void
    */
-  public static function log(mixed $data): void {
+  public static function log($data): void {
     Debugger::log($data);
   }
 
   /**
    * Enable debug bar
    *
-   * @param boolean $showBar 
+   * @param boolean $showBar Whether or not to enable the debug bar
    *
    * @return void
    */

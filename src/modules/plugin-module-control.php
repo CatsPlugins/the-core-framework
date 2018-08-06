@@ -34,7 +34,7 @@ final class ModuleControl {
    * Handle event when activate plugin
    *
    * @param callable $callback Callback
-   * 
+   *
    * @return void
    */
   public static function handleEventActivatePlugin(callable $callback): void {
@@ -45,7 +45,7 @@ final class ModuleControl {
    * Handle event when deactivate plugin
    *
    * @param callable $callback Callback
-   * 
+   *
    * @return void
    */
   public static function handleEventDeactivatePlugin(callable $callback): void {
@@ -69,15 +69,19 @@ final class ModuleControl {
    * @return array
    */
   public static function registerAssetsFiles(array $urls): array{
-    $result = [];
+    $results = [];
     array_walk(
       $urls,
-      function (array $value, string $key) {
-        $result[$key] = self::registerAssetsFile(...$value);
+      function (&$value, $key) use (&$results) {
+        $result = self::registerAssetsFile(...$value);
+
+        $scriptId = $result['id'];
+        unset($result['id']);
+
+        $results[$scriptId] = $result;
       }
     );
-
-    return $result;
+    return $results;
   }
 
   /**
@@ -88,13 +92,17 @@ final class ModuleControl {
    * @param mixed  $version  String specifying script version number
    * @param string $position Position to enqueue the script/style
    *
-   * @return boolean
+   * @return array
    */
-  private static function registerAssetsFile(string $url, array $deps = [], mixed $version = null, string $position = 'all'): bool {
+  private static function registerAssetsFile(string $url, array $deps = [], $version = null, string $position = 'all'): array{
+    $result            = [];
+    $result['url']     = $url;
+    $result['success'] = false;
+
     // Get path url
     $parsedUrl = parse_url($url);
     if (empty($parsedUrl['path'])) {
-      return false;
+      return $result;
     }
 
     $parsedPath = pathinfo($parsedUrl['path']);
@@ -102,12 +110,12 @@ final class ModuleControl {
     // Get file name
     $filename = $parsedPath['filename'];
     if (empty($filename)) {
-      return false;
+      return $result;
     }
 
     $fileExt = $parsedPath['extension'];
     if (empty($fileExt)) {
-      return false;
+      return $result;
     }
 
     // If url is not absolute, generate a absolute url
@@ -119,18 +127,35 @@ final class ModuleControl {
       // Check file exist
       $filePath = $assetsPath . DS . $fileExt . DS . $basenameFile;
       if (!file_exists($filePath)) {
-        return false;
+        return $result;
       }
 
       $basenameFile = $parsedPath['basename'];
       $url          = "$assetsUrl/$fileExt/$basenameFile";
     }
 
+    $fileId = ModuleCore::$textDomain . '-' . $filename;
+
     if ($fileExt === 'js') {
       $position = position === 'footer' ? true : false;
-      return wp_register_script(ModuleCore::$textDomain . '-' . $filename, $url, $deps, $version, $position);
+      $success  = add_action(
+        'wp_enqueue_scripts',
+        function () use ($fileId, $url, $deps, $version, $position) {
+          wp_register_script($fileId, $url, $deps, $version, $position);
+        }
+      );
     } else {
-      return wp_register_style(ModuleCore::$textDomain . '-' . $filename, $url, $deps, $version, $position);
+      $success = add_action(
+        'wp_enqueue_scripts',
+        function () use ($fileId, $url, $deps, $version, $position) {
+          wp_register_style($fileId, $url, $deps, $version, $position);
+        }
+      );
     }
+
+    $result['success'] = $success;
+    $result['id']      = $fileId;
+    $result['url']     = $url;
+    return $result;
   }
 }

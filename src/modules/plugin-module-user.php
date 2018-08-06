@@ -67,7 +67,7 @@ final class ModuleUser {
 
     // Format correct data
     $formatedData = array_map(
-      function (mixed $value) {
+      function ($value) {
         $originalValue = $value;
         if (!is_string($value) && !is_numeric($value)) {
           try {
@@ -82,7 +82,7 @@ final class ModuleUser {
 
     // Update meta
     array_walk(
-      function (mixed $value, mixed $key) use ($userId, $formatedData) {
+      function ($value, $key) use ($userId, $formatedData) {
         if (empty($value) && !empty($formatedData[$key])) {
           update_user_meta($userId, $key, $formatedData[$key]);
         }

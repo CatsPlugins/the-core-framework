@@ -29,7 +29,7 @@ if (!include __DIR__ . '/../vendor/autoload.php') {
 }
 
 // Add a special path config
-ModuleConfig::add(['core', 'option']);
+ModuleConfig::add(['./config']);
 
 // Get a config
 ModuleConfig::Core();
@@ -42,3 +42,6 @@ ModuleConfig::Option('type')->MY_TOKEN;
 
 // Get a raw wp option
 ModuleConfig::Option('raw')->MY_TOKEN;
+
+// Get all wp options
+ModuleConfig::Option('all');

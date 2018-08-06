@@ -1,11 +1,11 @@
-<?php
+<?php declare (strict_types = 1);
 /**
  * The Plugin Core Framework for Wordpress
  *
  * PHP Version 7
  *
  * @category Framework
- * @package  CatsPlugins\TheCoreFramework
+ * @package  CatsPlugins\TheCore
  * @author   Won <won.baria@email.com>
  * @license  GPLv2 https://www.gnu.org
  * @link     https://catsplugins.com
@@ -18,17 +18,9 @@
  * //// This is an old comment
  */
 
-declare (strict_types = 1);
-
-namespace CatsPlugins\TheCoreFramework;
+namespace CatsPlugins\TheCore;
 
 use Nette\Loaders\RobotLoader;
-
-// Blocking access direct to the plugin
-defined('ABSPATH') or die('No script kiddies please!');
-
-// Blocking called direct to the plugin
-defined('WPINC') or die('No script kiddies please!');
 
 // Blocking called multiple plugin core
 defined('TCF_PATH_BASE') and die('Multiple plugin core loaded!');

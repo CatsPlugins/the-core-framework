@@ -20,6 +20,7 @@ defined('TCF_PATH_BASE') or die('No script kiddies please!');
 
 use Nette\Caching\Cache;
 use Nette\Caching\Storages\FileStorage;
+use Nette\Utils\Callback;
 use Nette\Utils\FileSystem;
 
 /**
@@ -34,16 +35,19 @@ use Nette\Utils\FileSystem;
  * @link     https://catsplugins.com
  */
 final class ModuleCache {
-  private static $keyCache;
+  private static $storages;
 
   /**
    * Init Module Cache
    *
-   * @param string $pathCache path for store cache
+   * @param string ...$storagesName List storage cache
    *
-   * @return callable
+   * @return void
    */
-  public static function init(string $pathCache): callable {
+  public static function init(...$storagesName): void {
+    // Default path cache
+    $pathCache = ModuleCore::$cachePath;
+
     // Create cache path if not exist
     if (!file_exists($pathCache)) {
       FileSystem::createDir($pathCache, 744);
@@ -51,27 +55,58 @@ final class ModuleCache {
 
     $storage = new FileStorage($pathCache);
 
-    // Create Storage cache for API
-    self::$api = new Cache($storage, 'API');
+    // Create Storage cache
+    foreach ($storagesName as $name) {
+      $correctName                  = strtolower($name);
+      self::$storages[$correctName] = new Cache($storage, strtoupper($name));
+    }
   }
 
   /**
-   * Store current keyCache
+   * Smart method cache
    *
-   * @param mixed $name Key cache name
-   *
-   * @return callable
+   * @param string $storageName Name cache storage
+   * @param array  $arguments   Callback, array,...
+   * 
+   * @return void
    */
-  public static function setKeyCache(mixed $name): void {
-    self::$keyCache = $name;
-  }
+  public static function __callStatic(string $storageName, array $arguments) {
+    $name       = strtolower($storageName);
+    $cacheKey   = $arguments[0] ?? null;
+    $cacheValue = $arguments[1] ?? null;
+    $storage    = self::$storages[$name] ?? null;
 
-  /**
-   * Get current keyCache
-   *
-   * @return mixed
-   */
-  public static function getKeyCache(): mixed {
-    return self::$keyCache;
+    if ($storage === null) {
+      return false;
+    }
+
+    // Special Mode
+    if ($cacheKey !== null) {
+      // Call method mode
+      if (method_exists($storage, $cacheKey)) {
+        if ($cacheValue !== null) {
+          return Callback::invokeArgs([$storage, $cacheKey], $cacheValue);
+        }
+
+        return Callback::invoke($storage, $cacheKey);
+      }
+
+      // Save cache mode (default)
+      if ($cacheValue !== null) {
+        return $storage->save($cacheKey, $cacheValue);
+      }
+    }
+
+    // Mode load cache by Key
+    if ($cacheKey !== null && $cacheValue === null) {
+      // Load multiple items from the cache.
+      if (is_array($cacheKey)) {
+        return $storage->bulkLoad($cacheKey);
+      }
+
+      return $storage->load($cacheKey);
+    }
+
+    return true;
   }
 }
