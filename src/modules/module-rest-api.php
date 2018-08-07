@@ -18,6 +18,7 @@ namespace CatsPlugins\TheCore;
 use Nette\InvalidArgumentException;
 use Nette\Loaders\RobotLoader;
 use Nette\Utils\Callback;
+use Nette\SmartObject;
 
 // Blocking access direct to the plugin
 defined('TCF_PATH_BASE') or die('No script kiddies please!');

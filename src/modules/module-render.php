@@ -15,8 +15,10 @@ declare (strict_types = 1);
 
 namespace CatsPlugins\TheCore;
 
+use Nette\Utils\Html;
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
+use Tracy\Debugger;
 
 // Blocking access direct to the plugin
 defined('TCF_PATH_BASE') or die('No script kiddies please!');
@@ -34,13 +36,13 @@ defined('TCF_PATH_BASE') or die('No script kiddies please!');
  */
 final class ModuleRender {
   /**
-   * Send a json content
+   * Send array to a json content
    *
    * @param array $data Array data
    *
    * @return void
    */
-  public static function toJson(array $data): void {
+  public static function sendJson(array $data): void {
     try {
       $content = Json::encode($data);
     } catch (JsonException $e) {
@@ -56,43 +58,57 @@ final class ModuleRender {
   }
 
   /**
-   * Send a text content
+   * Send variable to a text content
    *
    * @param mixed $data Any variable
    *
    * @return void
    */
-  public static function toText($data): void {
-    $content = print_r($data, true);
-    //$content = preg_replace('/(\w+\n\()/', '(', $content);
+  public static function sendText($data): void {
+    Debugger::$showLocation = false;
+    dump($data);
+    $html = ob_get_clean();
 
     header_remove();
     header('Cache-Control: max-age=0, must-revalidate', true);
     header('Content-Type: text; charset=UTF-8', true);
 
-    echo "<pre>$content</pre>";
+    // TODO: Add a event
+
+    echo $html;
     exit;
   }
 
   /**
-   * Render array to html list
+   * Send variable to a html content
    *
-   * @param mixed $array Support object
+   * @param mixed $data Any variable
    *
    * @return void
    *
-   * TODO: make with Nette.Utils.Html
    */
-  public static function toListHtml($array): void {
-    if (is_object($array)) {
-      $array = ModuleHelper::objectToArray($array);
-    }
+  public static function sendHtml($data): void {
+    Debugger::$showLocation = false;
+    dump($data);
+    $html = ob_get_clean();
 
-    foreach ($array as $value) {
-      $html .= "<li>$value</li>";
-    }
+    header_remove();
+    header('Cache-Control: max-age=0, must-revalidate', true);
+    header('Content-Type: text/html; charset=UTF-8', true);
 
-    echo "<ul>$html</ul>";
+    // TODO: Add a event
+
+    echo $html;
     exit;
+  }
+
+  public static function sendAdminNotification(bool $showAll = null) {
+    $currentScreen = get_current_screen();
+    $pluginScreen  = '_' . ModuleCore::$textDomain . '-';
+
+    // Only show notification on plugin setting, or show all
+    if (stripos($currentScreen->id, $pluginScreen) !== false || $showAll === true) {
+      ModuleControl::trigger('_show_admin_notification');
+    }
   }
 }

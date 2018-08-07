@@ -16,6 +16,7 @@ declare (strict_types = 1);
 namespace CatsPlugins\TheCore;
 
 use Nette\Loaders\RobotLoader;
+use Nette\SmartObject;
 
 // Blocking access direct to the plugin
 defined('TCF_PATH_BASE') or die('No script kiddies please!');

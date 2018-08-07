@@ -31,6 +31,55 @@ defined('TCF_PATH_BASE') or die('No script kiddies please!');
  */
 final class ModuleControl {
   /**
+   * Add a event
+   *
+   * @param string   $tag          The name of the event to hook the $function callback to.
+   * @param callable $function     The callback to be run when the filter is applied.
+   * @param integer  $priority     Lower numbers correspond with earlier execution.
+   * @param integer  $acceptedArgs The number of arguments the function accepts.
+   *
+   * @return void
+   */
+  public static function event(string $tag, callable $function, int $priority = 10, int $acceptedArgs = 1) {
+    // Auto add textdomain for custom tag
+    $tag = $tag[0] === '_' ? ModuleCore::$textDomain . $tag : $tag;
+
+    return add_filter($tag, $function, $priority, $acceptedArgs);
+  }
+
+  /**
+   * Execute a event
+   *
+   * @param string $tag  The name of the event to hook the $function callback to.
+   * @param mixed  $args Additional arguments which are passed on to the event hooked to the action
+   *
+   * @return void
+   */
+  public static function trigger(string $tag, $args) {
+    // Auto add textdomain for custom tag
+    $tag = $tag[0] === '_' ? ModuleCore::$textDomain . $tag : $tag;
+
+    do_action($tag, $args);
+  }
+
+  /**
+   * Apply filter a event
+   *
+   * @param string $tag  The name of the event to hook the $function callback to.
+   * @param mixed  $args Additional arguments which are passed on to the event hooked to the filter
+   *
+   * @return void
+   */
+  public static function filter(string $tag, $args) {
+    // Auto add textdomain for custom tag
+    $tag = $tag[0] === '_' ? ModuleCore::$textDomain . $tag : $tag;
+
+    return apply_filters($tag, $args);
+  }
+
+  
+
+  /**
    * Handle event when activate plugin
    *
    * @param callable $callback Callback
@@ -72,7 +121,7 @@ final class ModuleControl {
     $results = [];
     array_walk(
       $urls,
-      function (&$value, $key) use (&$results) {
+      function (&$value) use (&$results) {
         $result = self::registerAssetsFile(...$value);
 
         $scriptId = $result['id'];

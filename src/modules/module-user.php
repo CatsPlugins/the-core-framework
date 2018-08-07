@@ -17,6 +17,7 @@ namespace CatsPlugins\TheCore;
 
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
+use Nette\SmartObject;
 
 // Blocking access direct to the plugin
 defined('TCF_PATH_BASE') or die('No script kiddies please!');

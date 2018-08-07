@@ -16,13 +16,13 @@ namespace CatsPlugins\TheCore;
 // Blocking access direct to the plugin
 defined('TCF_PATH_BASE') or die('No script kiddies please!');
 
+use Nette\SmartObject;
 use CatsPlugins\TheCore\ModuleHelper;
 use Nette\Neon\Exception;
 use Nette\Neon\Neon;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Finder;
 use Nette\Utils\Json;
-use Nette\Utils\JsonException;
 use \stdClass;
 
 /**
@@ -289,11 +289,11 @@ final class ModuleConfig {
         break;
       case 'array':
         if ($mode === self::READ) {
-          try {
+          if (is_string($mValue)) {
             $value = Json::decode($value);
-          } catch (JsonException $e) {
-            $value = (is_array($value) || is_object($value)) ? $value : [$value];
           }
+          $value = (is_array($value) || is_object($value)) ? $value : [$value];
+
         } elseif ($mode === self::WRITE) {
           $value = (is_array($value) || is_object($value)) ? $value : [$value];
           $value = Json::encode($value, Json::FORCE_ARRAY);

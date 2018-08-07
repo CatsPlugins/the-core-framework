@@ -18,6 +18,7 @@ namespace CatsPlugins\TheCore;
 // Blocking access direct to the plugin
 defined('TCF_PATH_BASE') or die('No script kiddies please!');
 
+use Nette\SmartObject;
 use Nette\Caching\Cache;
 use Nette\Caching\Storages\FileStorage;
 use Nette\Utils\Callback;
