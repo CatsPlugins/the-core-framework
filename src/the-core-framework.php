@@ -37,6 +37,15 @@ define('TCF_PATH_BASE', realpath(__DIR__) . DS);
 define('TCF_PATH_TEMP', TCF_PATH_BASE . 'temp' . DS);
 define('TCF_PATH_MODULES', TCF_PATH_BASE . 'modules' . DS);
 define('TCF_PATH_TEMPLATES', TCF_PATH_BASE . 'templates' . DS);
+define('TCF_PATH_TEMPLATES_ASSETS', TCF_PATH_TEMPLATES . 'assets' . DS);
+
+define(
+  'TCF_PATH_TEMPLATES_COMPONENTS',
+  [    
+    'page'    => TCF_PATH_TEMPLATES . 'components' . DS . 'pages' . DS,
+    'element' => TCF_PATH_TEMPLATES . 'components' . DS . 'elements' . DS,
+  ]
+);
 
 // Autoload all module files in TCF_PATH_MODULES
 $TCF_Loader = new RobotLoader;

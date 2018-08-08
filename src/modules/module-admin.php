@@ -45,84 +45,200 @@ final class ModuleAdmin {
   }
 
   /**
-   * Create menus form event admin_menu 
+   * Create menus form event admin_menu
    *
    * @return void
    */
   public static function createMenus() {
-    // Get menus config
-    $menusConfig = ModuleConfig::Admin();
+    // Get menus configuration
+    $menusConfig = ModuleConfig::Admin()->MENUS;
 
-    foreach ($menusConfig as $menuConfig) {
-      // Create top-level token menu
-      self::addMenu($menuConfig);
-
-      // Create submenu
-      // TODO: create method addSubMenu
-      add_submenu_page('pwp-menus', __('Settings', PWP_TEXTDOMAIN), __('Settings', PWP_TEXTDOMAIN), 'manage_options', 'pwp-menus', [$this, 'parseAdminSetting']);
-    }
+    // Create top-level token menu
+    self::addMenus($menusConfig);
 
     // Notification
-    ModuleControl::event('admin_notices', [ModuleRender::class, 'showAdminNotification']);
+    ModuleControl::event('admin_notices', [ModuleRender::class, 'sendAdminNotification']);
 
     // Call setup settings
-    ModuleControl::event('admin_init', [self::class, 'setupSettings']);
+    ModuleControl::event('admin_init', [self::class, 'setupPages']);
   }
 
   /**
-   * Add a admin menu
+   * Adds multiple admin menus
    *
-   * @param stdClass $menuConfig Menu Configs 
-   * 
+   * @param stdClass $menusConfig Menus Config
+   *
    * @return void
    */
-  public static function addMenu(stdClass $menuConfig):void {
+  public static function addMenus(stdClass $menusConfig): void {
+    foreach ($menusConfig as $menuConfig) {
+      self::addMenu($menuConfig);
+
+      // Create submenu
+      if ($menuConfig->sub_menu) {
+        self::addSubMenus($menuConfig->slug, $menuConfig->sub_menu);
+      }
+    }
+  }
+  /**
+   * Add a admin menu
+   *
+   * @param stdClass $menuConfig Menu Config
+   *
+   * @return void
+   */
+  public static function addMenu(stdClass $menuConfig): void {
+    $menuConfig->callback = ModuleHelper::fixCallback($menuConfig->callback);
+    bdump($menuConfig, 'addMenu');
     add_menu_page(
       $menuConfig->title,
       $menuConfig->name,
       $menuConfig->capability,
       $menuConfig->slug,
-      $menuConfig->function,
+      $menuConfig->callback,
       $menuConfig->icon_url,
       $menuConfig->position
     );
-  } 
+  }
 
-  private static function setupSettings() {
+  /**
+   * Adds multiple admin sub menus
+   *
+   * @param string   $slug        The slug name for the parent menu
+   * @param stdClass $menusConfig Sub menus configuration
+   *
+   * @return void
+   */
+  public static function addSubMenus(string $slug, stdClass $menusConfig): void {
+    foreach ($menusConfig as $menuConfig) {
+      self::addSubMenu($slug, $menuConfig);
+    }
+  }
 
-    // TODO: update old code
-    // Register section
-    $aSectionSetting = $this->section;
-    foreach ($aSectionSetting as $sKey => $aValue) {
-      add_settings_section($sKey, $aValue['title'], null, $aValue['page']);
+  /**
+   * Add a admin sub menu
+   *
+   * @param string   $slug       The slug name for the parent menu
+   * @param stdClass $menuConfig Menu Config
+   *
+   * @return void
+   */
+  public static function addSubMenu(string $slug, stdClass $menuConfig): void {
+    $menuConfig->callback = ModuleHelper::fixCallback($menuConfig->callback);
+    bdump($menuConfig, 'addSubMenu');
+    add_submenu_page(
+      $slug,
+      $menuConfig->title,
+      $menuConfig->name,
+      $menuConfig->capability,
+      $menuConfig->slug,
+      $menuConfig->callback
+    );
+  }
+
+  /**
+   * Setup pages by configuration
+   *
+   * @return void
+   */
+  public static function setupPages(): void {
+    $pagesConfig = ModuleConfig::Admin()->PAGES;
+
+    foreach ($pagesConfig as $pageConfig) {
+      self::addSettingsSections($pageConfig->sections);
+    }
+  }
+
+  /**
+   * Adds multiple settings sections
+   *
+   * @param stdClass $sectionsConfig Sections Config
+   *
+   * @return void
+   */
+  public static function addSettingsSections(stdClass $sectionsConfig): void {
+    foreach ($sectionsConfig as $sectionId => $sectionConfig) {
+      // Add a settings section
+      self::addSettingsSection($sectionId, $sectionConfig);
+
+      // Add settings for this section
+      self::addSettings($sectionId, $sectionConfig);
+    }
+  }
+
+  /**
+   * Add a settings section
+   *
+   * @param string   $sectionId     The section id name
+   * @param stdClass $sectionConfig Section Config
+   *
+   * @return void
+   */
+  public static function addSettingsSection(string $sectionId, stdClass $sectionConfig): void {
+    $sectionConfig->callback = ModuleHelper::fixCallback($sectionConfig->callback);
+    
+    add_settings_section($sectionId, $sectionConfig->title, $sectionConfig->callback ?? null, $sectionConfig->tag);
+  }
+
+  /**
+   * Add a setting
+   *
+   * @param string   $sectionId     The section id name
+   * @param stdClass $sectionConfig Section Config
+   *
+   * @return void
+   */
+  public static function addSettings(string $sectionId, stdClass $sectionConfig): void {
+    foreach ($sectionConfig->options as $optionId => $optionElements) {
+      // Register a setting
+      $optionStruct = ModuleConfig::Option('raw')->$optionId;
+      
+      self::registerSetting($sectionConfig->tab, $optionId, $optionStruct);
+
+      // Add a setting field
+      self::addSettingsField($optionId, $optionElements, $sectionId, $sectionConfig);
+    }
+  }
+
+  /**
+   * Register a setting
+   *
+   * @param string   $tabId        The ID of the tab contains this option
+   * @param string   $optionId     Option ID
+   * @param stdClass $optionStruct Option struct
+   *
+   * @return void
+   */
+  public static function registerSetting(string $tabId, string $optionId, stdClass $optionStruct): void {
+    $finalTabId = ModuleCore::$textDomain . '_' . $tabId;
+    register_setting(
+      $finalTabId,
+      $optionId,
+      $optionStruct
+    );
+  }
+
+  /**
+   * Add a settings field
+   *
+   * @param string   $optionId       Option ID
+   * @param array    $optionElements Option elements configuration
+   * @param string   $sectionId      The section id name
+   * @param stdClass $sectionConfig  Section Config
+   *
+   * @return void
+   */
+  public static function addSettingsField(string $optionId, array $optionElements, string $sectionId, stdClass $sectionConfig): void {
+    // Ignore if there is no configurationuration
+    if (empty($optionElements)) {
+      return;
     }
 
-    // Register setting
-    $aSetting = $this->option;
+    // Add more data field for generate html
+    $optionElements['name']  = $optionId;
+    $optionElements['value'] = ModuleConfig::Option()->$optionId;
 
-    foreach ($aSetting as $sKey => $aValue) {
-      register_setting(PWP_TEXTDOMAIN . '-settings-group', $sKey, [
-        'type'    => $aValue['type'] ?? null,
-        'default' => $aValue['value'] ?? null,
-      ]);
-
-      // Check elements, if ignored it will use set get set
-      if (empty($aValue['elements'])) {
-        continue;
-      }
-
-      // Show setting to HTML
-      $sTitle   = !empty($aValue['title']) ? $aValue['title'] : '';
-      $sSection = $aValue['section'];
-
-      $aElements = $aValue['elements'];
-
-      $aElements['name']  = $sKey;
-      $aElements['value'] = $this->getOption($sKey);
-
-      $sPage = $aSectionSetting[$sSection]['page'];
-
-      add_settings_field($sKey, $sTitle, [$this->PWP->render, 'generateElementHTML'], $sPage, $sSection, $aElements);
-    }
+    // Call generateElementHTML to generate html by $optionElements;
+    add_settings_field($optionId, $sectionConfig->title, [ModuleTemplate::class, 'generateElements'], $sectionConfig->tab, $sectionId, $optionElements);
   }
 }

@@ -102,13 +102,47 @@ final class ModuleRender {
     exit;
   }
 
-  public static function sendAdminNotification(bool $showAll = null) {
+  /**
+   * Send admin notification
+   *
+   * @param boolean $showEverywhere Whether or not to show everywhere
+   *
+   * @return void
+   */
+  public static function sendAdminNotification(bool $showEverywhere = null): void {
     $currentScreen = get_current_screen();
     $pluginScreen  = '_' . ModuleCore::$textDomain . '-';
 
     // Only show notification on plugin setting, or show all
-    if (stripos($currentScreen->id, $pluginScreen) !== false || $showAll === true) {
+    if (stripos($currentScreen->id, $pluginScreen) !== false || $showEverywhere === true) {
       ModuleControl::trigger('_show_admin_notification');
     }
+  }
+
+  /**
+   * Render a template page
+   *
+   * @param string $pageId Page id in config
+   *
+   * @return void
+   */
+  public static function showPage(string $pageId): void {
+    // Get file path of template
+    $templateFile = realpath(TCF_PATH_TEMPLATES_COMPONENTS['page'] . $pageId . '.latte');
+
+    // Show error if file not exist
+    if ($templateFile === false) {
+      echo '<h2 class="center-align">' . ___('The template page does not exist!') . '</h2>';
+      return;
+    }
+
+    // Get page configuration
+    $pageConfig = ModuleConfig::Admin()->PAGES->$pageId;
+
+    // Add more data
+    $pageConfig['page_id']    = $pageId;
+    $pageConfig['textdomain'] = ModuleCore::$textdomain;
+
+    echo ModuleTemplate::$engine->renderToString($templateFile, $pageConfig);
   }
 }

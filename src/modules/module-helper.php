@@ -16,10 +16,12 @@ declare (strict_types = 1);
 namespace CatsPlugins\TheCore;
 
 use GuzzleHttp\Client;
+use Nette\InvalidArgumentException;
 use Nette\Utils\Callback;
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
 use \stdClass;
+use Nette\Neon\Neon;
 
 // Blocking access direct to the plugin
 defined('TCF_PATH_BASE') or die('No script kiddies please!');
@@ -37,6 +39,17 @@ defined('TCF_PATH_BASE') or die('No script kiddies please!');
  */
 
 final class ModuleHelper {
+  /**
+   * Translate text with textdomain
+   *
+   * @param mixed $text Text to translate
+   *
+   * @return string
+   */
+  public static function trans(mixed $text): string {
+    return __($text, ModuleCore::$textDomain);
+  }
+
   /**
    * Whether current user has a specific capability
    *
@@ -130,19 +143,6 @@ final class ModuleHelper {
   }
 
   /**
-   * Convert variable to HTML format
-   *
-   * @param mixed $content Any data
-   *
-   * @return string
-   */
-  public static function variableToHtml($content): string {
-    $content = print_r($content, true);
-    $content = preg_replace('/(\w+\n\()/', '(', $content);
-    return "<pre>$content</pre>";
-  }
-
-  /**
    * Get full current url
    *
    * @return string
@@ -201,6 +201,55 @@ final class ModuleHelper {
    */
   public static function isValidUrl(string $url): bool {
     return !preg_match("/^(?:http(s)?:)?\/\/[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:\/?#[\]@!\$&'\(\)\*\+,;=.]+$/im", $url) ? true : false;
+  }
+
+  /**
+   * Fix an unclear callback can be called
+   *
+   * @param mixed $callback An unclear callback
+   *
+   * @return void
+   */
+  public static function fixCallback($callback) {
+    bdump($callback, 'fixCallback');
+    bdump(Neon::encode([ModuleRender::class, 'showPage']));
+    if (is_null($callback)) {
+      return false;
+    }
+
+    if (is_callable($callback)) {
+      return $callback;
+    }
+
+    try {
+      return Callback::closure($callback);
+    } catch (InvalidArgumentException $e) {
+      bdump($e, 'Callback Invalid');      
+      return false;
+    }
+    return $callback;
+  }
+
+  /**
+   * Call function in lazy style
+   *
+   * @param array $data Array ha a lazy callable
+   *
+   * @return void
+   */
+  public static function lazyInvokeArgsRecursive(array &$data): void {
+    if (is_array($data)) {
+      // Get callback function and parameter
+      $callable = array_slice($data, 0, 2);
+      $args     = array_slice($data, 2);
+
+      try {
+        Callback::invokeArgs($callable, $args);
+      } catch (InvalidArgumentException $e) {
+        bdump($e, 'lazyInvokeArgsRecursive');
+        array_walk($data, [self::class, 'lazyInvokeArgsRecursive']);
+      }
+    }
   }
 
   /**

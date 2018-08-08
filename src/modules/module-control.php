@@ -33,14 +33,14 @@ final class ModuleControl {
   /**
    * Add a event
    *
-   * @param string   $tag          The name of the event to hook the $function callback to.
-   * @param callable $function     The callback to be run when the filter is applied.
-   * @param integer  $priority     Lower numbers correspond with earlier execution.
-   * @param integer  $acceptedArgs The number of arguments the function accepts.
+   * @param string  $tag          The name of the event to hook the $function callback to.
+   * @param array   $function     The callback to be run when the filter is applied.
+   * @param integer $priority     Lower numbers correspond with earlier execution.
+   * @param integer $acceptedArgs The number of arguments the function accepts.
    *
    * @return void
    */
-  public static function event(string $tag, callable $function, int $priority = 10, int $acceptedArgs = 1) {
+  public static function event(string $tag, array $function, int $priority = 10, int $acceptedArgs = 1) {
     // Auto add textdomain for custom tag
     $tag = $tag[0] === '_' ? ModuleCore::$textDomain . $tag : $tag;
 
