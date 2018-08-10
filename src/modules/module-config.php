@@ -16,13 +16,13 @@ namespace CatsPlugins\TheCore;
 // Blocking access direct to the plugin
 defined('TCF_PATH_BASE') or die('No script kiddies please!');
 
-use Nette\SmartObject;
 use CatsPlugins\TheCore\ModuleHelper;
 use Nette\Neon\Exception;
 use Nette\Neon\Neon;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Finder;
 use Nette\Utils\Json;
+use Nette\Utils\Strings;
 use \stdClass;
 
 /**
@@ -110,6 +110,9 @@ final class ModuleConfig {
 
     $fileContent = FileSystem::read($filePath);
 
+    // Returns the constant value from the constant neon
+    $fileContent = self::returnConstants($fileContent);
+
     try {
       $config = Neon::decode($fileContent);
     } catch (Exception $e) {
@@ -117,7 +120,31 @@ final class ModuleConfig {
       $config = [$e];
     }
 
+    //bdump($config, 'getConfigValue: ' . $name);
     return $config;
+  }
+
+  /**
+   * Returns the constant value from the constant neon
+   *
+   * @param string $contents The Neon content file
+   *
+   * @return void
+   */
+  public static function returnConstants(string $contents): string {
+    $constants = Strings::match($contents, '/(\%[A-Z_]+\%)/');
+
+    if (is_null($constants)) {
+      return $contents;
+    }
+
+    $constants = array_unique($constants);
+
+    foreach ($constants as $name) {
+      $value    = ModuleHelper::constant($name);
+      $contents = str_replace($name, $value, $contents);
+    }
+    return $contents;
   }
 
   /**
@@ -275,30 +302,30 @@ final class ModuleConfig {
    */
   private static function formatOptionValue($value, string $type, int $mode) {
     switch ($type) {
-      case 'string':
-        $value = strval($value);
-        break;
-      case 'integer':
-        $value = intval($value);
-        break;
-      case 'number':
-        $value = floatval($value);
-        break;
-      case 'boolean':
-        $value = boolval($value) ? 1 : 0;
-        break;
-      case 'array':
-        if ($mode === self::READ) {
-          if (is_string($mValue)) {
-            $value = Json::decode($value);
-          }
-          $value = (is_array($value) || is_object($value)) ? $value : [$value];
-
-        } elseif ($mode === self::WRITE) {
-          $value = (is_array($value) || is_object($value)) ? $value : [$value];
-          $value = Json::encode($value, Json::FORCE_ARRAY);
+    case 'string':
+      $value = strval($value);
+      break;
+    case 'integer':
+      $value = intval($value);
+      break;
+    case 'number':
+      $value = floatval($value);
+      break;
+    case 'boolean':
+      $value = boolval($value) ? 1 : 0;
+      break;
+    case 'array':
+      if ($mode === self::READ) {
+        if (is_string($mValue)) {
+          $value = Json::decode($value);
         }
-        break;
+        $value = (is_array($value) || is_object($value)) ? $value : [$value];
+
+      } elseif ($mode === self::WRITE) {
+        $value = (is_array($value) || is_object($value)) ? $value : [$value];
+        $value = Json::encode($value, Json::FORCE_ARRAY);
+      }
+      break;
     }
 
     return $value;

@@ -41,7 +41,7 @@ define('TCF_PATH_TEMPLATES_ASSETS', TCF_PATH_TEMPLATES . 'assets' . DS);
 
 define(
   'TCF_PATH_TEMPLATES_COMPONENTS',
-  [    
+  [
     'page'    => TCF_PATH_TEMPLATES . 'components' . DS . 'pages' . DS,
     'element' => TCF_PATH_TEMPLATES . 'components' . DS . 'elements' . DS,
   ]
@@ -53,3 +53,5 @@ $TCF_Loader->addDirectory(TCF_PATH_MODULES);
 $TCF_Loader->setTempDirectory(TCF_PATH_TEMP);
 $TCF_Loader->setAutoRefresh(true);
 $TCF_Loader->register();
+
+require_once TCF_PATH_BASE . 'shortcuts.php';

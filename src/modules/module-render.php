@@ -132,17 +132,28 @@ final class ModuleRender {
 
     // Show error if file not exist
     if ($templateFile === false) {
-      echo '<h2 class="center-align">' . ___('The template page does not exist!') . '</h2>';
+      echo '<h2 class="center-align">' . ModuleHelper::trans('The template page does not exist!') . '</h2>';
       return;
     }
 
     // Get page configuration
     $pageConfig = ModuleConfig::Admin()->PAGES->$pageId;
 
-    // Add more data
-    $pageConfig['page_id']    = $pageId;
-    $pageConfig['textdomain'] = ModuleCore::$textdomain;
+    // Enqueue assets files
+    ModuleControl::enqueueAssetsFiles($pageConfig->assets);
 
-    echo ModuleTemplate::$engine->renderToString($templateFile, $pageConfig);
+    // Add more data
+    $pageConfig->page_id    = $pageId;
+    $pageConfig->textdomain = ModuleCore::$textDomain;
+
+    // Remove data not used    
+    unset($pageConfig->assets, $pageConfig->sections);
+
+    // Argument 2 passed renderToString must be of the type array
+    if (is_object($pageConfig)) {
+      $pageConfig = ModuleHelper::objectToArray($pageConfig);
+    }
+
+    echo ModuleTemplate::renderToString($templateFile, $pageConfig);
   }
 }

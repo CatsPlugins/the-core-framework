@@ -88,14 +88,28 @@ final class ModuleAdmin {
    * @return void
    */
   public static function addMenu(stdClass $menuConfig): void {
-    $menuConfig->callback = ModuleHelper::fixCallback($menuConfig->callback);
-    bdump($menuConfig, 'addMenu');
+    // Auto fix function callback format
+    list($callback, $args) = ModuleHelper::fixCallback($menuConfig->callback);
+
+    // Check callback hash parameter
+    if (!empty($args)) {
+      // Get hook of this menu
+      $hookName = get_plugin_page_hookname($menuConfig->slug, '');
+
+      // Add event with parameter
+      if (!empty($hookName)) {
+        $args = is_array($args) ? $args : [$args];
+        ModuleControl::event($hookName, $callback, 10, 1, $args);
+        $callback = null;
+      }
+    }
+
     add_menu_page(
       $menuConfig->title,
       $menuConfig->name,
       $menuConfig->capability,
       $menuConfig->slug,
-      $menuConfig->callback,
+      $callback,
       $menuConfig->icon_url,
       $menuConfig->position
     );
@@ -124,15 +138,29 @@ final class ModuleAdmin {
    * @return void
    */
   public static function addSubMenu(string $slug, stdClass $menuConfig): void {
-    $menuConfig->callback = ModuleHelper::fixCallback($menuConfig->callback);
-    bdump($menuConfig, 'addSubMenu');
+    // Auto fix function callback format
+    list($callback, $args) = ModuleHelper::fixCallback($menuConfig->callback);
+
+    // Check callback hash parameter
+    if (!empty($args)) {
+      // Get hook of this menu
+      $hookName = get_plugin_page_hookname($menuConfig->slug, $slug);
+
+      // Add event with parameter
+      if (!empty($hookName)) {
+        $args = is_array($args) ? $args : [$args];
+        ModuleControl::event($hookName, $callback, 10, 1, $args);
+        $callback = null;
+      }
+    }
+
     add_submenu_page(
       $slug,
       $menuConfig->title,
       $menuConfig->name,
       $menuConfig->capability,
       $menuConfig->slug,
-      $menuConfig->callback
+      $callback
     );
   }
 
@@ -144,25 +172,34 @@ final class ModuleAdmin {
   public static function setupPages(): void {
     $pagesConfig = ModuleConfig::Admin()->PAGES;
 
-    foreach ($pagesConfig as $pageConfig) {
-      self::addSettingsSections($pageConfig->sections);
+    foreach ($pagesConfig as $pageId => $pageConfig) {
+
+      // Add assets files
+      if (isset($pagesConfig->assets)) {
+        ModuleControl::registerAssetsFiles($pagesConfig->assets);
+      }
+
+      $finalPageId = ModuleCore::$textDomain . '_' . $pageId;
+
+      self::addSettingsSections($finalPageId, $pageConfig->sections);
     }
   }
 
   /**
    * Adds multiple settings sections
    *
+   * @param string   $pageId         The page ID
    * @param stdClass $sectionsConfig Sections Config
    *
    * @return void
    */
-  public static function addSettingsSections(stdClass $sectionsConfig): void {
+  public static function addSettingsSections(string $pageId, stdClass $sectionsConfig): void {
     foreach ($sectionsConfig as $sectionId => $sectionConfig) {
       // Add a settings section
       self::addSettingsSection($sectionId, $sectionConfig);
 
       // Add settings for this section
-      self::addSettings($sectionId, $sectionConfig);
+      self::addSettings($pageId, $sectionId, $sectionConfig);
     }
   }
 
@@ -176,24 +213,25 @@ final class ModuleAdmin {
    */
   public static function addSettingsSection(string $sectionId, stdClass $sectionConfig): void {
     $sectionConfig->callback = ModuleHelper::fixCallback($sectionConfig->callback);
-    
-    add_settings_section($sectionId, $sectionConfig->title, $sectionConfig->callback ?? null, $sectionConfig->tag);
+    //bdump([$sectionId, $sectionConfig->title, $sectionConfig->callback ?? null, $sectionConfig->tab], 'addSettingsSection');
+    add_settings_section($sectionId, $sectionConfig->title, $sectionConfig->callback ?? null, $sectionConfig->tab);
   }
 
   /**
    * Add a setting
    *
+   * @param string   $pageId        The page ID
    * @param string   $sectionId     The section id name
    * @param stdClass $sectionConfig Section Config
    *
    * @return void
    */
-  public static function addSettings(string $sectionId, stdClass $sectionConfig): void {
+  public static function addSettings(string $pageId, string $sectionId, stdClass $sectionConfig): void {
     foreach ($sectionConfig->options as $optionId => $optionElements) {
       // Register a setting
       $optionStruct = ModuleConfig::Option('raw')->$optionId;
-      
-      self::registerSetting($sectionConfig->tab, $optionId, $optionStruct);
+
+      self::registerSetting($pageId, $optionId, $optionStruct);
 
       // Add a setting field
       self::addSettingsField($optionId, $optionElements, $sectionId, $sectionConfig);
@@ -203,16 +241,16 @@ final class ModuleAdmin {
   /**
    * Register a setting
    *
-   * @param string   $tabId        The ID of the tab contains this option
+   * @param string   $pageId       The page ID
    * @param string   $optionId     Option ID
    * @param stdClass $optionStruct Option struct
    *
    * @return void
    */
-  public static function registerSetting(string $tabId, string $optionId, stdClass $optionStruct): void {
-    $finalTabId = ModuleCore::$textDomain . '_' . $tabId;
+  public static function registerSetting(string $pageId, string $optionId, stdClass $optionStruct): void {
+    //bdump([$pageId, $optionId, $optionStruct], 'registerSetting');
     register_setting(
-      $finalTabId,
+      $pageId,
       $optionId,
       $optionStruct
     );
@@ -229,16 +267,18 @@ final class ModuleAdmin {
    * @return void
    */
   public static function addSettingsField(string $optionId, array $optionElements, string $sectionId, stdClass $sectionConfig): void {
-    // Ignore if there is no configurationuration
+    // Ignore if there is no configuration
     if (empty($optionElements)) {
       return;
     }
 
     // Add more data field for generate html
+    $optionElements['echo']  = true;
     $optionElements['name']  = $optionId;
     $optionElements['value'] = ModuleConfig::Option()->$optionId;
 
     // Call generateElementHTML to generate html by $optionElements;
+    //bdump([$optionId, $sectionConfig->title, [ModuleTemplate::class, 'generateElements'], $sectionConfig->tab, $sectionId, $optionElements], 'addSettingsField');
     add_settings_field($optionId, $sectionConfig->title, [ModuleTemplate::class, 'generateElements'], $sectionConfig->tab, $sectionId, $optionElements);
   }
 }

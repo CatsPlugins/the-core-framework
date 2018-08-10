@@ -25,10 +25,12 @@
     "optimize-autoloader": true
   },
   "autoload": {
-    "files": ["src/the-core-framework.php"],
     "psr-4": {
       "CatsPlugins\\TheCore\\": "src"
-    }
+    },
+    "files": [
+      "src/the-core-framework.php"
+    ]
   },
   "minimum-stability": "dev"
 }

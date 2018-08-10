@@ -1,4 +1,4 @@
-<?php
+<?php declare (strict_types = 1);
 /**
  * The Plugin Core Framework for Wordpress
  *
@@ -12,7 +12,10 @@
  * @link     https://catsplugins.com
  */
 
-if (!function_exists('___')) {
+// Blocking access direct to the plugin
+defined('TCF_PATH_BASE') or die('No script kiddies please!');
+
+if (!function_exists('_t')) {
   /**
    * Shortcut translate string with plugin textdomain
    *
@@ -20,7 +23,7 @@ if (!function_exists('___')) {
    *
    * @return string
    */
-  function ___($text): string {
+  function _t($text): string {
     return call_user_func_array('CatsPlugins\TheCore\ModuleHelper::trans', func_get_args());
   }
 }

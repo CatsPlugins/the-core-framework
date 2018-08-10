@@ -15,6 +15,9 @@ declare (strict_types = 1);
 
 namespace CatsPlugins\TheCore;
 
+use Nette\InvalidArgumentException;
+use Nette\Utils\Callback;
+
 // Blocking access direct to the plugin
 defined('TCF_PATH_BASE') or die('No script kiddies please!');
 
@@ -30,20 +33,36 @@ defined('TCF_PATH_BASE') or die('No script kiddies please!');
  * @link     https://catsplugins.com
  */
 final class ModuleControl {
+  // Store assets files config
+  private static $assetsConfig;
+
   /**
    * Add a event
    *
    * @param string  $tag          The name of the event to hook the $function callback to.
-   * @param array   $function     The callback to be run when the filter is applied.
+   * @param mixed   $function     The callback to be run when the filter is applied.
    * @param integer $priority     Lower numbers correspond with earlier execution.
    * @param integer $acceptedArgs The number of arguments the function accepts.
+   * @param array   $parameters   Parameters passed to a callback
    *
    * @return void
    */
-  public static function event(string $tag, array $function, int $priority = 10, int $acceptedArgs = 1) {
+  public static function event(string $tag, $function, int $priority = 10, int $acceptedArgs = 1, array $parameters = null) {
     // Auto add textdomain for custom tag
     $tag = $tag[0] === '_' ? ModuleCore::$textDomain . $tag : $tag;
 
+    // Add callback with parameters
+    if (!is_null($parameters)) {
+      $function = function () use ($function, $parameters) {
+        try {
+          return Callback::invokeArgs($function, $parameters);
+        } catch (InvalidArgumentException $e) {
+          bdump($e, 'Add callback with parameters : ' . $function);
+        }
+      };
+    }
+
+    //bdump([$tag, $function, $priority, $acceptedArgs], 'Event');
     return add_filter($tag, $function, $priority, $acceptedArgs);
   }
 
@@ -77,8 +96,6 @@ final class ModuleControl {
     return apply_filters($tag, $args);
   }
 
-  
-
   /**
    * Handle event when activate plugin
    *
@@ -111,30 +128,25 @@ final class ModuleControl {
   }
 
   /**
-   * Lazy and smart register assets files
+   * Lazy register assets files
    *
-   * @param array $urls An array config assets [url, deps, ver, position]
+   * @param array $configs An array config assets [url, deps, ver, position]
    *
    * @return array
    */
-  public static function registerAssetsFiles(array $urls): array{
-    $results = [];
-    array_walk(
-      $urls,
-      function (&$value) use (&$results) {
-        $result = self::registerAssetsFile(...$value);
+  public static function registerAssetsFiles(array $configs): void {
+    foreach ($configs as $config) {
+      $result = self::registerAssetsFile(...$config);
 
-        $scriptId = $result['id'];
-        unset($result['id']);
+      $id = $result['hash'];
+      unset($result['hash']);
 
-        $results[$scriptId] = $result;
-      }
-    );
-    return $results;
+      self::$assetsConfig[$id] = $result;
+    }
   }
 
   /**
-   * Smart register assets an file
+   * Smart register an assets file
    *
    * @param string $url      Full URL or path script/style relative to the plugin assets directory
    * @param array  $deps     An array of registered script handles this script depends on
@@ -145,8 +157,17 @@ final class ModuleControl {
    */
   private static function registerAssetsFile(string $url, array $deps = [], $version = null, string $position = 'all'): array{
     $result            = [];
+    $result['hash']    = md5($url);
     $result['url']     = $url;
     $result['success'] = false;
+    //bdump($result, 'Begin registerAssetsFile');
+
+    // Convert path to url
+    if (file_exists($url)) {
+      $url        = ModuleHelper::pathToUrl($url);
+      $isValidUrl = true;
+      //bdump($url, 'Convert path to url');
+    }
 
     // Get path url
     $parsedUrl = parse_url($url);
@@ -167,8 +188,10 @@ final class ModuleControl {
       return $result;
     }
 
+    $isValidUrl = $isValidUrl ?? ModuleHelper::isValidUrl($url);
+
     // If url is not absolute, generate a absolute url
-    if (!isset($parsedUrl['host']) || !ModuleHelper::isValidUrl($url)) {
+    if (!isset($parsedUrl['host']) || !$isValidUrl) {
       $assetsUrl    = ModuleCore::$assetsUrl;
       $assetsPath   = ModuleCore::$assetsPath;
       $basenameFile = $parsedPath['basename'];
@@ -184,19 +207,22 @@ final class ModuleControl {
     }
 
     $fileId = ModuleCore::$textDomain . '-' . $filename;
+    bdump([$fileId, $url, $deps, $version, $position], 'wp_enqueue_scripts');
 
     if ($fileExt === 'js') {
       $position = position === 'footer' ? true : false;
-      $success  = add_action(
+      $success  = self::event(
         'wp_enqueue_scripts',
         function () use ($fileId, $url, $deps, $version, $position) {
+          bdump([$fileId, $url, $deps, $version, $position], 'wp_register_script');
           wp_register_script($fileId, $url, $deps, $version, $position);
         }
       );
     } else {
-      $success = add_action(
+      $success = self::event(
         'wp_enqueue_scripts',
         function () use ($fileId, $url, $deps, $version, $position) {
+          bdump([$fileId, $url, $deps, $version, $position], 'wp_register_style');
           wp_register_style($fileId, $url, $deps, $version, $position);
         }
       );
@@ -205,6 +231,51 @@ final class ModuleControl {
     $result['success'] = $success;
     $result['id']      = $fileId;
     $result['url']     = $url;
+
+    //bdump($result, 'registerAssetsFile');
     return $result;
+  }
+
+  /**
+   * Lazy enqueue assets files
+   *
+   * @param array $configs An array config assets [url, deps, ver, position]
+   *
+   * @return void
+   */
+  public static function enqueueAssetsFiles(array $configs): void {
+    foreach ($configs as $config) {
+      self::enqueueAssetsFile(...$config);
+    }
+  }
+
+  /**
+   * Smart enqueue an assets file
+   *
+   * @param string $file Full URL or path script/style file relative to the plugin assets directory
+   *
+   * @return void
+   */
+  private static function enqueueAssetsFile(string $file): void {
+    $hash   = md5($file);
+    $result = self::$assetsConfig[$hash] ?? false;
+
+    // If assets file not reg, try reg it
+    if ($result === false) {
+      $result = self::registerAssetsFile($file);
+    }
+
+    if ($result['success'] === false) {
+      return;
+    }
+
+    //bdump($result, 'enqueueAssetsFile');
+    self::event(
+      'wp_enqueue_scripts',
+      function () use ($result) {
+        bdump($result, 'wp_enqueue_script');
+        wp_enqueue_script($result['id']);
+      }
+    );
   }
 }

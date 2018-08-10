@@ -20,8 +20,8 @@ use Nette\InvalidArgumentException;
 use Nette\Utils\Callback;
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
+use Nette\Utils\Strings;
 use \stdClass;
-use Nette\Neon\Neon;
 
 // Blocking access direct to the plugin
 defined('TCF_PATH_BASE') or die('No script kiddies please!');
@@ -46,7 +46,7 @@ final class ModuleHelper {
    *
    * @return string
    */
-  public static function trans(mixed $text): string {
+  public static function trans($text): string {
     return __($text, ModuleCore::$textDomain);
   }
 
@@ -111,6 +111,22 @@ final class ModuleHelper {
   }
 
   /**
+   * Returns the safe value of a constant or neon constant
+   *
+   * @param string $name The name of the constant
+   *
+   * @return void
+   */
+  public static function constant(string $name) {
+    // Check neon constant %constant_name%
+    if ($name[0] === '%' && $name[-1] === '%') {
+      $name = Strings::substring($name, 1, -1);
+    }
+
+    return defined($name) ? constant($name) : $name;
+  }
+
+  /**
    * Convert object to array
    *
    * @param stdClass $input Support object in object
@@ -155,6 +171,25 @@ final class ModuleHelper {
     $protocol = $ssl === 'on' ? 'https' : 'http';
 
     return "$protocol://$serverName$requestUri";
+  }
+
+  /**
+   * Convert a path to uri
+   *
+   * @param string $path Dir or file path
+   *
+   * @return string
+   */
+  public static function pathToUrl(string $path): string {
+    $ssl          = filter_input(INPUT_SERVER, 'HTTPS');
+    $serverName   = filter_input(INPUT_SERVER, 'SERVER_NAME');
+    $documentRoot = filter_input(INPUT_SERVER, 'DOCUMENT_ROOT');
+    $correctPath  = str_replace('\\', '/', $path);
+    $uri          = str_replace($documentRoot, '', $correctPath);
+
+    $protocol = $ssl === 'on' ? 'https' : 'http';
+
+    return "$protocol://$serverName/$uri";
   }
 
   /**
@@ -211,8 +246,7 @@ final class ModuleHelper {
    * @return void
    */
   public static function fixCallback($callback) {
-    bdump($callback, 'fixCallback');
-    bdump(Neon::encode([ModuleRender::class, 'showPage']));
+    //bdump($callback, 'fix Callback');
     if (is_null($callback)) {
       return false;
     }
@@ -221,10 +255,32 @@ final class ModuleHelper {
       return $callback;
     }
 
+    if (is_object($callback)) {
+      $callback = array_values(ModuleHelper::objectToArray($callback));
+    }
+
+    if (Strings::contains($callback[0], '\\') === false) {
+      $callback[0] = __NAMESPACE__ . '\\' . $callback[0];
+    }
+
+    if (Strings::contains($callback[0], '(')) {
+      $args        = Strings::after($callback[0], '(', 1);
+      $callback[1] = Strings::before($args, ')', 1);
+      $callback[0] = Strings::before($callback[0], '(', 1);
+    }
+
+    if (Strings::contains($callback[0], '::')) {
+      $class  = Strings::before($callback[0], '::', 1);
+      $method = Strings::after($callback[0], '::', 1);
+
+      $callback[0] = [$class, $method];
+    }
+
+    //bdump($callback, 'fixed Callback');
     try {
-      return Callback::closure($callback);
+      Callback::check($callback[0]);
     } catch (InvalidArgumentException $e) {
-      bdump($e, 'Callback Invalid');      
+      bdump($e, 'Callback Invalid');
       return false;
     }
     return $callback;
@@ -233,11 +289,11 @@ final class ModuleHelper {
   /**
    * Call function in lazy style
    *
-   * @param array $data Array ha a lazy callable
+   * @param mixed $data Array ha a lazy callable
    *
    * @return void
    */
-  public static function lazyInvokeArgsRecursive(array &$data): void {
+  public static function lazyInvokeArgsRecursive(&$data): void {
     if (is_array($data)) {
       // Get callback function and parameter
       $callable = array_slice($data, 0, 2);

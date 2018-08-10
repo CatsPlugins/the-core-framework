@@ -1,10 +1,9 @@
-{dump}
 <div class="wrap">
-	{('settings_fields'|php:$textdomain.'_'.$page_id)}
+	{('settings_fields'|func:$textdomain.'_'.$page_id)}
   <!-- notice -->
   <div class="row">
     <div class="col s12">
-      {('settings_errors'|php)}
+      {('settings_errors'|func)}
     </div>
    </div>
   <!-- panel -->
@@ -23,11 +22,11 @@
         <form action="options.php" method="post" id="optionsForm">
         	{foreach $tabs as $tabId => $tabConfig}
           <div id="{$tabConfig['hash']}">
-            {('do_settings_sections'|php:$tabId)}
+            {('do_settings_sections'|func:$tabId)}
           </div>
           {/foreach}
           <button class="waves-effect waves-light btn">
-          	{('___'|php:'Save Settings')}
+          	{('_t'|func:'Save Settings')}
           </button>
         </form>
       </div>
