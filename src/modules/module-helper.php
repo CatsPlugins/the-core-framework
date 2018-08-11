@@ -40,6 +40,50 @@ defined('TCF_PATH_BASE') or die('No script kiddies please!');
 
 final class ModuleHelper {
   /**
+   * Auto trigger a hook before and after call a _method
+   *
+   * @param string $method    The name of the method being called.
+   * @param array  $arguments The argument is an enumerated array containing the parameters passed to the method.
+   *
+   * @return void
+   */
+  public static function __callStatic(string $method, array $arguments) {
+    return self::autoTriggerEventMethod(self::class, $method, $arguments);
+  }
+
+  /**
+   * Auto trigger a hook before and after call method
+   *
+   * @param string $class     The namespaceD of the class.
+   * @param string $method    The name of the method being called.
+   * @param array  $arguments The argument is an enumerated array containing the parameters passed to the method.
+   *
+   * @return void
+   */
+  public static function autoTriggerEventMethod(string $class, string $method, array $arguments) {
+    // Remove _ in method name
+    $existMethod = Strings::substring($method, 1);
+
+    try {
+      Callback::check($class, $existMethod);
+    } catch (InvalidArgumentException $e) {
+      bdump($e, 'Method not found: ' . $existMethod);
+      return;
+    }
+
+    // Do a action hook before method called
+    ModuleEvent::trigger('_before' . $method);
+
+    // Call method with parameters
+    $result = Callback::invokeArgs([$class, $existMethod], $arguments);
+
+    // Do a action hook after method called
+    ModuleEvent::trigger('_after' . $method);
+
+    return $result;
+  }
+
+  /**
    * Translate text with textdomain
    *
    * @param mixed $text Text to translate
@@ -120,10 +164,10 @@ final class ModuleHelper {
   public static function constant(string $name) {
     // Check neon constant %constant_name%
     if ($name[0] === '%' && $name[-1] === '%') {
-      $name = Strings::substring($name, 1, -1);
+      $constant = Strings::substring($name, 1, -1);
     }
 
-    return defined($name) ? constant($name) : $name;
+    return defined($constant) ? constant($constant) : $name;
   }
 
   /**
@@ -251,6 +295,11 @@ final class ModuleHelper {
       return false;
     }
 
+    if (is_string($callback)) {
+      $stringCallback = $callback;
+      $callback       = [$stringCallback];
+    }
+
     if (is_callable($callback)) {
       return $callback;
     }
@@ -259,9 +308,8 @@ final class ModuleHelper {
       $callback = array_values(ModuleHelper::objectToArray($callback));
     }
 
-    if (Strings::contains($callback[0], '\\') === false) {
-      $callback[0] = __NAMESPACE__ . '\\' . $callback[0];
-    }
+    // Get full class namespace
+    $callback[0] = self::getFullClassNameSpace($callback[0]);
 
     if (Strings::contains($callback[0], '(')) {
       $args        = Strings::after($callback[0], '(', 1);
@@ -284,6 +332,50 @@ final class ModuleHelper {
       return false;
     }
     return $callback;
+  }
+
+  /**
+   * Get a variable form string
+   *
+   * @param string $string Content method get string
+   *
+   * @return void
+   */
+  public static function getVariableFormString(string $string) {    
+    if (Strings::contains($string, '::$')) {
+      $class    = Strings::before($string, '::', 1);
+      $variable = Strings::after($string, '::$', 1);
+
+      $class = self::getFullClassNameSpace($class);
+
+      return $class::$$variable;
+    }
+
+    if (Strings::contains($string, '->')) {
+      $class    = Strings::before($string, '->', 1);
+      $variable = Strings::after($string, '->', 1);
+
+      $class = self::getFullClassNameSpace($class);
+
+      return $class->$$variable;
+    }
+  }
+
+  /**
+   * Get full class namespace
+   *
+   * @param string   $class  Class name
+   * @param stdClass $parent Namespace of this class
+   *
+   * @return void
+   */
+  public static function getFullClassNameSpace(string $class, stdClass $parent = null) {
+    $parent = $parent ?? __NAMESPACE__;
+
+    if (Strings::contains($class, '\\') === false) {
+      $class = $parent . '\\' . $class;
+    }
+    return $class;
   }
 
   /**

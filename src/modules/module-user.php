@@ -35,6 +35,18 @@ defined('TCF_PATH_BASE') or die('No script kiddies please!');
  */
 final class ModuleUser {
   /**
+   * Auto trigger a hook before and after call a _method
+   *
+   * @param string $method    The name of the method being called.
+   * @param array  $arguments The argument is an enumerated array containing the parameters passed to the method.
+   *
+   * @return void
+   */
+  public static function __callStatic(string $method, array $arguments) {
+    return ModuleHelper::autoTriggerEventMethod(self::class, $method, $arguments);
+  }
+  
+  /**
    * Quick create a user wordpress
    *
    * @param string $userName User name

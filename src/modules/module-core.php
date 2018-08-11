@@ -58,12 +58,12 @@ final class ModuleCore {
     self::$pluginPath    = realpath(plugin_dir_path($config['plugin_path'])) . DS;
     self::$pluginVersion = $config['plugin_version'];
 
-    self::$logPath      = self::$pluginPath . DS . 'log' . DS;
-    self::$cachePath    = self::$pluginPath . DS . 'cache' . DS;
-    self::$assetsPath   = self::$pluginPath . DS . 'assets' . DS;
-    self::$configPath   = self::$pluginPath . DS . 'config' . DS;
-    self::$modulesPath  = self::$pluginPath . DS . 'modules' . DS;
-    self::$languagePath = self::$pluginPath . DS . 'languages' . DS;
+    self::$logPath      = self::$pluginPath . 'log' . DS;
+    self::$cachePath    = self::$pluginPath . 'cache' . DS;
+    self::$assetsPath   = self::$pluginPath . 'assets' . DS;
+    self::$configPath   = self::$pluginPath . 'config' . DS;
+    self::$modulesPath  = self::$pluginPath . 'modules' . DS;
+    self::$languagePath = self::$pluginPath . 'languages' . DS;
 
     self::$assetsUrl = plugin_dir_url($config['plugin_path']) . 'assets';
 

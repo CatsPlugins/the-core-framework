@@ -17,6 +17,7 @@ namespace CatsPlugins\TheCore;
 
 use Nette\InvalidArgumentException;
 use Nette\Utils\Callback;
+use Nette\Utils\Strings;
 
 // Blocking access direct to the plugin
 defined('TCF_PATH_BASE') or die('No script kiddies please!');
@@ -24,7 +25,7 @@ defined('TCF_PATH_BASE') or die('No script kiddies please!');
 /**
  * The Module Control
  *
- * Control event, request, router, assets
+ * Control request, router, assets files
  *
  * @category Framework
  * @package  CatsPlugins\TheCore\ModuleControl
@@ -37,94 +38,21 @@ final class ModuleControl {
   private static $assetsConfig;
 
   /**
-   * Add a event
-   *
-   * @param string  $tag          The name of the event to hook the $function callback to.
-   * @param mixed   $function     The callback to be run when the filter is applied.
-   * @param integer $priority     Lower numbers correspond with earlier execution.
-   * @param integer $acceptedArgs The number of arguments the function accepts.
-   * @param array   $parameters   Parameters passed to a callback
-   *
-   * @return void
-   */
-  public static function event(string $tag, $function, int $priority = 10, int $acceptedArgs = 1, array $parameters = null) {
-    // Auto add textdomain for custom tag
-    $tag = $tag[0] === '_' ? ModuleCore::$textDomain . $tag : $tag;
-
-    // Add callback with parameters
-    if (!is_null($parameters)) {
-      $function = function () use ($function, $parameters) {
-        try {
-          return Callback::invokeArgs($function, $parameters);
-        } catch (InvalidArgumentException $e) {
-          bdump($e, 'Add callback with parameters : ' . $function);
-        }
-      };
-    }
-
-    //bdump([$tag, $function, $priority, $acceptedArgs], 'Event');
-    return add_filter($tag, $function, $priority, $acceptedArgs);
-  }
-
-  /**
-   * Execute a event
-   *
-   * @param string $tag  The name of the event to hook the $function callback to.
-   * @param mixed  $args Additional arguments which are passed on to the event hooked to the action
-   *
-   * @return void
-   */
-  public static function trigger(string $tag, $args) {
-    // Auto add textdomain for custom tag
-    $tag = $tag[0] === '_' ? ModuleCore::$textDomain . $tag : $tag;
-
-    do_action($tag, $args);
-  }
-
-  /**
-   * Apply filter a event
-   *
-   * @param string $tag  The name of the event to hook the $function callback to.
-   * @param mixed  $args Additional arguments which are passed on to the event hooked to the filter
-   *
-   * @return void
-   */
-  public static function filter(string $tag, $args) {
-    // Auto add textdomain for custom tag
-    $tag = $tag[0] === '_' ? ModuleCore::$textDomain . $tag : $tag;
-
-    return apply_filters($tag, $args);
-  }
-
-  /**
-   * Handle event when activate plugin
-   *
-   * @param callable $callback Callback
-   *
-   * @return void
-   */
-  public static function handleEventActivatePlugin(callable $callback): void {
-    register_activation_hook(ModuleCore::$pluginPath, $callback);
-  }
-
-  /**
-   * Handle event when deactivate plugin
-   *
-   * @param callable $callback Callback
-   *
-   * @return void
-   */
-  public static function handleEventDeactivatePlugin(callable $callback): void {
-    register_deactivation_hook(ModuleCore::$pluginPath, $callback);
-  }
-
-  /**
    * Initialization language
    *
    * @return void
    */
   public static function initLanguage(): void {
     load_plugin_textdomain(ModuleCore::$textDomain, false, ModuleCore::$languagePath);
+  }
+
+  /**
+   * Get all information of assets file
+   *
+   * @return array
+   */
+  public static function getAssetsInfo(): array{
+    return self::$assetsConfig;
   }
 
   /**
@@ -156,10 +84,10 @@ final class ModuleControl {
    * @return array
    */
   private static function registerAssetsFile(string $url, array $deps = [], $version = null, string $position = 'all'): array{
-    $result            = [];
-    $result['hash']    = md5($url);
-    $result['url']     = $url;
-    $result['success'] = false;
+    $result               = [];
+    $result['hash']       = md5($url);
+    $result['registered'] = false;
+    $result['url']        = $url;
     //bdump($result, 'Begin registerAssetsFile');
 
     // Convert path to url
@@ -211,7 +139,7 @@ final class ModuleControl {
 
     if ($fileExt === 'js') {
       $position = position === 'footer' ? true : false;
-      $success  = self::event(
+      $success  = ModuleEvent::on(
         'wp_enqueue_scripts',
         function () use ($fileId, $url, $deps, $version, $position) {
           bdump([$fileId, $url, $deps, $version, $position], 'wp_register_script');
@@ -219,7 +147,7 @@ final class ModuleControl {
         }
       );
     } else {
-      $success = self::event(
+      $success = ModuleEvent::on(
         'wp_enqueue_scripts',
         function () use ($fileId, $url, $deps, $version, $position) {
           bdump([$fileId, $url, $deps, $version, $position], 'wp_register_style');
@@ -228,9 +156,9 @@ final class ModuleControl {
       );
     }
 
-    $result['success'] = $success;
-    $result['id']      = $fileId;
-    $result['url']     = $url;
+    $result['registered'] = $success;
+    $result['id']         = $fileId;
+    $result['url']        = $url;
 
     //bdump($result, 'registerAssetsFile');
     return $result;
@@ -265,12 +193,12 @@ final class ModuleControl {
       $result = self::registerAssetsFile($file);
     }
 
-    if ($result['success'] === false) {
+    if ($result['registered'] === false) {
       return;
     }
 
     //bdump($result, 'enqueueAssetsFile');
-    self::event(
+    ModuleEvent::on(
       'wp_enqueue_scripts',
       function () use ($result) {
         bdump($result, 'wp_enqueue_script');

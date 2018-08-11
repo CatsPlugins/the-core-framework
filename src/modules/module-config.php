@@ -110,8 +110,11 @@ final class ModuleConfig {
 
     $fileContent = FileSystem::read($filePath);
 
-    // Returns the constant value from the constant neon
-    $fileContent = self::returnConstants($fileContent);
+    // Returns the constant value from the variable neon
+    $fileContent = self::returnValueConstants($fileContent);
+
+    // Returns the variable from the variable neon
+    $fileContent = self::returnValueVariable($fileContent);
 
     try {
       $config = Neon::decode($fileContent);
@@ -125,26 +128,58 @@ final class ModuleConfig {
   }
 
   /**
-   * Returns the constant value from the constant neon
+   * Returns the constant value from the variable neon: %name%
    *
    * @param string $contents The Neon content file
    *
    * @return void
    */
-  public static function returnConstants(string $contents): string {
-    $constants = Strings::match($contents, '/(\%[A-Z_]+\%)/');
+  public static function returnValueConstants(string $contents): string {
+    $variables = self::findVariablesConfig($contents);
 
-    if (is_null($constants)) {
-      return $contents;
-    }
-
-    $constants = array_unique($constants);
-
-    foreach ($constants as $name) {
+    foreach ($variables as $name) {
       $value    = ModuleHelper::constant($name);
       $contents = str_replace($name, $value, $contents);
     }
+
     return $contents;
+  }
+
+  /**
+   * Returns the variable value from the variable neon: %class/variable%
+   *
+   * @param string $contents The Neon content file
+   *
+   * @return void
+   */
+  public static function returnValueVariable(string $contents): string {
+    $variables = self::findVariablesConfig($contents);
+    //bdump($variables, 'returnValueCallable');
+
+    foreach ($variables as $name) {
+      $variable = Strings::substring($name, 1, -1);
+      $value    = ModuleHelper::getVariableFormString($variable);
+      $contents = str_replace($name, $value, $contents);
+    }
+
+    return $contents;
+  }
+
+  /**
+   * Find variables in content neon config
+   *
+   * @param string $contents The Neon content file
+   *
+   * @return array
+   */
+  private static function findVariablesConfig(string $contents): array{
+    $variables = Strings::match($contents, '/(\%[A-Z_:\$]+\%)/i');
+
+    if (is_null($variables)) {
+      return [];
+    }
+
+    return array_unique($variables);
   }
 
   /**

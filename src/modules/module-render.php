@@ -36,6 +36,18 @@ defined('TCF_PATH_BASE') or die('No script kiddies please!');
  */
 final class ModuleRender {
   /**
+   * Auto trigger a hook before and after call a _method
+   *
+   * @param string $method    The name of the method being called.
+   * @param array  $arguments The argument is an enumerated array containing the parameters passed to the method.
+   *
+   * @return void
+   */
+  public static function __callStatic(string $method, array $arguments) {
+    return ModuleHelper::autoTriggerEventMethod(self::class, $method, $arguments);
+  }
+
+  /**
    * Send array to a json content
    *
    * @param array $data Array data
@@ -73,8 +85,6 @@ final class ModuleRender {
     header('Cache-Control: max-age=0, must-revalidate', true);
     header('Content-Type: text; charset=UTF-8', true);
 
-    // TODO: Add a event
-
     echo $html;
     exit;
   }
@@ -95,8 +105,6 @@ final class ModuleRender {
     header_remove();
     header('Cache-Control: max-age=0, must-revalidate', true);
     header('Content-Type: text/html; charset=UTF-8', true);
-
-    // TODO: Add a event
 
     echo $html;
     exit;
@@ -146,7 +154,7 @@ final class ModuleRender {
     $pageConfig->page_id    = $pageId;
     $pageConfig->textdomain = ModuleCore::$textDomain;
 
-    // Remove data not used    
+    // Remove data not used
     unset($pageConfig->assets, $pageConfig->sections);
 
     // Argument 2 passed renderToString must be of the type array

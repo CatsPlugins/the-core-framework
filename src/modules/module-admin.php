@@ -33,6 +33,18 @@ defined('TCF_PATH_BASE') or die('No script kiddies please!');
  */
 final class ModuleAdmin {
   /**
+   * Auto trigger a hook before and after call a _method
+   *
+   * @param string $method    The name of the method being called.
+   * @param array  $arguments The argument is an enumerated array containing the parameters passed to the method.
+   *
+   * @return void
+   */
+  public static function __callStatic(string $method, array $arguments) {
+    return ModuleHelper::autoTriggerEventMethod(self::class, $method, $arguments);
+  }
+  
+  /**
    * Init Module Admin
    *
    * @return void
@@ -40,7 +52,7 @@ final class ModuleAdmin {
   public static function init(): void {
     if (is_admin()) {
       // Create admin menu
-      ModuleControl::event('admin_menu', [self::class, 'createMenus']);
+      ModuleEvent::on('admin_menu', [self::class, 'createMenus']);
     }
   }
 
@@ -57,10 +69,10 @@ final class ModuleAdmin {
     self::addMenus($menusConfig);
 
     // Notification
-    ModuleControl::event('admin_notices', [ModuleRender::class, 'sendAdminNotification']);
+    ModuleEvent::on('admin_notices', [ModuleRender::class, 'sendAdminNotification']);
 
     // Call setup settings
-    ModuleControl::event('admin_init', [self::class, 'setupPages']);
+    ModuleEvent::on('admin_init', [self::class, 'setupPages']);
   }
 
   /**
@@ -99,7 +111,7 @@ final class ModuleAdmin {
       // Add event with parameter
       if (!empty($hookName)) {
         $args = is_array($args) ? $args : [$args];
-        ModuleControl::event($hookName, $callback, 10, 1, $args);
+        ModuleEvent::on($hookName, $callback, 10, 1, $args);
         $callback = null;
       }
     }
@@ -149,7 +161,7 @@ final class ModuleAdmin {
       // Add event with parameter
       if (!empty($hookName)) {
         $args = is_array($args) ? $args : [$args];
-        ModuleControl::event($hookName, $callback, 10, 1, $args);
+        ModuleEvent::on($hookName, $callback, 10, 1, $args);
         $callback = null;
       }
     }
@@ -175,8 +187,8 @@ final class ModuleAdmin {
     foreach ($pagesConfig as $pageId => $pageConfig) {
 
       // Add assets files
-      if (isset($pagesConfig->assets)) {
-        ModuleControl::registerAssetsFiles($pagesConfig->assets);
+      if (isset($pageConfig->assets)) {        
+        ModuleControl::registerAssetsFiles($pageConfig->assets);
       }
 
       $finalPageId = ModuleCore::$textDomain . '_' . $pageId;

@@ -40,6 +40,18 @@ final class ModuleTemplate {
   private static $engine;
 
   /**
+   * Magic call a method of Engine
+   *
+   * @param string $method    Method name for callback
+   * @param array  $arguments Arguments function
+   *
+   * @return mixed
+   */
+  public static function __callStatic(string $method, array $arguments) {
+    return self::$engine->$method(...$arguments);
+  }
+
+  /**
    * Module Initialization
    *
    * @param string $templateCachePath Cache path for template
@@ -49,14 +61,14 @@ final class ModuleTemplate {
   public static function init(string $templateCachePath): void {
     self::$engine = self::initTemplateEngine($templateCachePath);
 
-    // Add filter call any php functions with params (with)
+    // Add filter call any php method with params (with)
     self::$engine->addFilter(
       'func',
-      function (string $function, ...$arguments) {
+      function (string $method, ...$arguments) {
         try {
-          return Callback::invokeArgs($function, $arguments);
+          return Callback::invokeArgs($method, $arguments);
         } catch (InvalidArgumentException $e) {
-          bdump($e, 'Template filter func: ' . $function);
+          bdump($e, 'Template filter func: ' . $method);
         }
       }
     );
@@ -74,18 +86,6 @@ final class ModuleTemplate {
     $engine->setTempDirectory($templateCachePath);
     $engine->setLoader(new FileLoader);
     return $engine;
-  }
-
-  /**
-   * Magic call a method of Engine
-   *
-   * @param string $function  Function string for callback
-   * @param array  $arguments Arguments function
-   *
-   * @return mixed
-   */
-  public static function __callStatic(string $function, array $arguments) {
-    return self::$engine->$function(...$arguments);
   }
 
   /**

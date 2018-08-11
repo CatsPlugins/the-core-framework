@@ -18,11 +18,16 @@ namespace CatsPlugins\TheCore;
 // Blocking access direct to the plugin
 defined('TCF_PATH_BASE') or die('No script kiddies please!');
 
-use Nette\SmartObject;
 use Nette\Caching\Cache;
 use Nette\Caching\Storages\FileStorage;
+use Nette\Caching\Storages\MemoryStorage;
+use Nette\Caching\Storages\NewMemcachedStorage;
+use Nette\Caching\Storages\SQLiteStorage;
+use Nette\InvalidStateException;
+use Nette\NotSupportedException;
 use Nette\Utils\Callback;
 use Nette\Utils\FileSystem;
+use \stdClass;
 
 /**
  * The Module Cache
@@ -41,26 +46,61 @@ final class ModuleCache {
   /**
    * Init Module Cache
    *
-   * @param string ...$storagesName List storage cache
-   *
    * @return void
    */
-  public static function init(...$storagesName): void {
-    // Default path cache
-    $pathCache = ModuleCore::$cachePath;
-
-    // Create cache path if not exist
-    if (!file_exists($pathCache)) {
-      FileSystem::createDir($pathCache, 744);
+  public static function init(): void {
+    $configs = ModuleConfig::Cache()->CACHE_STORAGE;
+    if (empty($configs)) {
+      return;
     }
 
-    $storage = new FileStorage($pathCache);
+    self::$storages = new stdClass;
+    //bdump($configs, 'Config cache');
 
     // Create Storage cache
-    foreach ($storagesName as $name) {
-      $correctName                  = strtolower($name);
-      self::$storages[$correctName] = new Cache($storage, strtoupper($name));
+    foreach ($configs as $storageName => $storagesCache) {
+      $name                  = strtolower($storageName);
+      $folder                = strtoupper($storageName);
+      self::$storages->$name = new stdClass;
+
+      if (isset($storagesCache->memory)) {
+        $oStorage                      = new MemoryStorage();
+        self::$storages->$name->memory = new Cache($oStorage, $folder);
+      }
+
+      if (isset($storagesCache->file)) {
+        $pathCache = realpath($storagesCache->file);
+
+        // Create cache path if not exist
+        if (!file_exists($pathCache)) {
+          FileSystem::createDir($pathCache, 744);
+        }
+
+        $oStorage                    = new FileStorage($pathCache);
+        self::$storages->$name->file = new Cache($oStorage, $folder);
+      }
+
+      if (isset($storagesCache->memcached)) {
+        try {
+          $oStorage                         = new NewMemcachedStorage($storagesCache->memcached->host, $storagesCache->memcached->port);
+          self::$storages->$name->memcached = new Cache($oStorage, $folder);
+        } catch (NotSupportedException $e) {
+          bdump($e->getMessage(), 'Module Cache: Memcached');
+        } catch (InvalidStateException $e) {
+          bdump($e->getMessage(), 'Module Cache: Memcached');
+        }
+      }
+
+      if (isset($storagesCache->sqlite)) {
+        try {
+          $oStorage                      = new SQLiteStorage($storagesCache->sqlite);
+          self::$storages->$name->sqlite = new Cache($oStorage, $folder);
+        } catch (PDOException $e) {
+          bdump($e->getMessage(), 'Module Cache: SQLite');
+        }
+      }
     }
+    bdump(self::$storages, 'Cache Storage');
   }
 
   /**
@@ -68,46 +108,56 @@ final class ModuleCache {
    *
    * @param string $storageName Name cache storage
    * @param array  $arguments   Callback, array,...
-   * 
+   *
    * @return void
    */
   public static function __callStatic(string $storageName, array $arguments) {
-    $name       = strtolower($storageName);
-    $cacheKey   = $arguments[0] ?? null;
-    $cacheValue = $arguments[1] ?? null;
-    $storage    = self::$storages[$name] ?? null;
+    bdump($arguments, $storageName);
+
+    $result   = null;
+    $name     = strtolower($storageName);
+    $storages = self::$storages->$name ?? null;
 
     if ($storage === null) {
       return false;
     }
 
-    // Special Mode
-    if ($cacheKey !== null) {
-      // Call method mode
-      if (method_exists($storage, $cacheKey)) {
+    $cacheKey    = $arguments[0] ?? null;
+    $cacheValue  = $arguments[1] ?? null;
+    $cacheOption = $arguments[2] ?? null;
+    $cacheTime   = ModuleConfig::Cache()->CACHE_TIME;
+
+    foreach ($storages as $type => $storage) {
+      // Set time cache form setting
+      if ($cacheKey === 'save' && !isset($cacheOption['expire'])) {
+        $cacheOption['expire']  = $cacheTime->$name;
+        $cacheOption['sliding'] = false;
+      }
+
+      if (is_object($storage) && $cacheKey !== null) {
+        // Save cache mode (default)
         if ($cacheValue !== null) {
-          return Callback::invokeArgs([$storage, $cacheKey], $cacheValue);
+          $result = $storage->save($cacheKey, $cacheValue);
+        } else {
+          try {
+            // Call exist method cache
+            $result = Callback::invokeArgs([$storage, $cacheKey], $cacheValue);
+          } catch (InvalidArgumentException $e) {
+            bdump($e, 'Method not found: ' . $cacheKey);
+
+            // Load multiple items from the cache.
+            if (is_array($cacheKey)) {
+              $result = $storage->bulkLoad($cacheKey);
+            } else {
+              $result = $storage->load($cacheKey);
+            }
+          }
         }
 
-        return Callback::invoke($storage, $cacheKey);
-      }
-
-      // Save cache mode (default)
-      if ($cacheValue !== null) {
-        return $storage->save($cacheKey, $cacheValue);
+        bdump($result, $type);
       }
     }
 
-    // Mode load cache by Key
-    if ($cacheKey !== null && $cacheValue === null) {
-      // Load multiple items from the cache.
-      if (is_array($cacheKey)) {
-        return $storage->bulkLoad($cacheKey);
-      }
-
-      return $storage->load($cacheKey);
-    }
-
-    return true;
+    return $result;
   }
 }
