@@ -100,7 +100,7 @@ final class ModuleCache {
         }
       }
     }
-    bdump(self::$storages, 'Cache Storage');
+    //bdump(self::$storages, 'Cache Storage');
   }
 
   /**

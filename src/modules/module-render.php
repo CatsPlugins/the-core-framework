@@ -135,33 +135,14 @@ final class ModuleRender {
    * @return void
    */
   public static function showPage(string $pageId): void {
-    // Get file path of template
-    $templateFile = realpath(TCF_PATH_TEMPLATES_COMPONENTS['page'] . $pageId . '.latte');
-
-    // Show error if file not exist
-    if ($templateFile === false) {
-      echo '<h2 class="center-align">' . ModuleHelper::trans('The template page does not exist!') . '</h2>';
-      return;
-    }
-
     // Get page configuration
     $pageConfig = ModuleConfig::Admin()->PAGES->$pageId;
-
+    
     // Enqueue assets files
-    ModuleControl::enqueueAssetsFiles($pageConfig->assets);
-
-    // Add more data
-    $pageConfig->page_id    = $pageId;
-    $pageConfig->textdomain = ModuleCore::$textDomain;
-
-    // Remove data not used
-    unset($pageConfig->assets, $pageConfig->sections);
-
-    // Argument 2 passed renderToString must be of the type array
-    if (is_object($pageConfig)) {
-      $pageConfig = ModuleHelper::objectToArray($pageConfig);
+    if (isset($pageConfig->assets)) {
+      ModuleControl::enqueueAssetsFiles($pageConfig->assets);
     }
-
-    echo ModuleTemplate::renderToString($templateFile, $pageConfig);
+    
+    echo ModuleTemplate::generatePage($pageId);
   }
 }

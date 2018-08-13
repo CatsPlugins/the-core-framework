@@ -268,7 +268,7 @@ final class ModuleHelper {
    * @return boolean
    */
   public static function isValidDomainName(string $domain): bool {
-    return !preg_match("/^[a-z0-9][a-z0-9-._]{1,61}[a-z0-9]\.[a-z]{2,}$/i", $domain) ? false : true;
+    return filter_var($domain, FILTER_VALIDATE_DOMAIN) !== false;
   }
 
   /**
@@ -279,7 +279,7 @@ final class ModuleHelper {
    * @return boolean
    */
   public static function isValidUrl(string $url): bool {
-    return !preg_match("/^(?:http(s)?:)?\/\/[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:\/?#[\]@!\$&'\(\)\*\+,;=.]+$/im", $url) ? true : false;
+    return filter_var($url, FILTER_VALIDATE_URL) !== false;
   }
 
   /**
@@ -406,11 +406,11 @@ final class ModuleHelper {
    * @param array   $arrayData  Array data
    * @param mixed   $search     Search value
    * @param boolean $onlyParent Only return parent
-   * @param init    $keyParent  Current key parent
+   * @param mixed   $keyParent  Current key parent
    *
-   * @return init
+   * @return int
    */
-  public static function arraySearchRecursive(array $arrayData, $search, bool $onlyParent = null, init $keyParent = null): init {
+  public static function arraySearchRecursive(array $arrayData, $search, bool $onlyParent = null, $keyParent = null): int {
     foreach ($arrayData as $key => $value) {
       if (is_array($value)) {
         $keyPass = is_string($key) ? $key : $keyParent;

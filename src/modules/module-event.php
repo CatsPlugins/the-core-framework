@@ -59,12 +59,12 @@ final class ModuleEvent {
       };
     }
 
-    bdump([$tag, $function, $priority, $acceptedArgs], 'Event');
+    //bdump([$tag, $function, $priority, $acceptedArgs], 'Event');
     return add_filter($tag, $function, $priority, $acceptedArgs);
   }
 
   /**
-   * Remove one or all event by tag name
+   * Remove one or all event by tag 
    *
    * @param string  $tag      The name of the event to hook the $function callback to.
    * @param mixed   $function The callback to be run when the filter is applied.

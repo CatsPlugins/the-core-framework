@@ -89,9 +89,47 @@ final class ModuleTemplate {
   }
 
   /**
+   * Generate a page by config
+   *
+   * @param string $pageId Page id in config
+   * 
+   * @return string
+   */
+  public static function generatePage(string $pageId): string {
+    $oHTML = '';
+
+    // Get file path of template
+    $templateFile = realpath(TCF_PATH_TEMPLATES_COMPONENTS['page'] . $pageId . '.latte');
+
+    // Show error if file not exist
+    if ($templateFile === false) {
+      return '<h2 class="center-align">' . ModuleHelper::trans('The template page does not exist!') . '</h2>';
+    }
+
+    // Get page configuration
+    $pageConfig = ModuleConfig::Admin()->PAGES->$pageId;
+
+    // Add more data
+    $pageConfig->page_id    = $pageId;
+    $pageConfig->textdomain = ModuleCore::$textDomain;
+
+    // Remove data not used
+    unset($pageConfig->assets, $pageConfig->sections);
+
+    // Argument 2 passed renderToString must be of the type array
+    if (is_object($pageConfig)) {
+      $pageConfig = ModuleHelper::objectToArray($pageConfig);
+    }
+
+    $oHTML = self::renderToString($templateFile, $pageConfig);
+
+    return (string) $oHTML;
+  }
+
+  /**
    * Generate elements by config
    *
-   * @param array $elementsConfig The element config
+   * @param array $elementsConfig The elements config
    *
    * @return string
    */
@@ -105,58 +143,11 @@ final class ModuleTemplate {
     $oElement = Html::el();
 
     foreach ($elementsConfig as $elementConfig) {
-      // Ignore if the configuration is invalid
-      if (empty($elementConfig->htmltag)) {
+      if (!is_object($elementConfig)) {
         continue;
       }
 
-      $htmlTag = $elementConfig->htmltag;
-      unset($elementConfig->htmltag);
-
-      // Get data for the item may be callback
-      array_walk($elementConfig, [ModuleHelper::class, 'lazyInvokeArgsRecursive']);
-
-      // Try to get an optional value if named (possibly an optional id)
-      $elementValue = false;
-      if (isset($elementConfig->attr->name)) {
-        $elementName  = $elementConfig->attr->name;
-        $elementValue = ModuleConfig::Option()->$elementName;
-      }
-
-      // If there is an attr name it will have a value, but not overwritten
-      if ($elementValue && !isset($elementConfig->attr->value)) {
-        $elementConfig->attr->value = $elementValue;
-      }
-
-      // If it is not named, it will have the value of the main element
-      if (!isset($elementConfig->attr->name) && isset($elementsConfig->value) && !isset($elementConfig->attr->value)) {
-        $elementConfig->attr->name  = $elementsConfig->name;
-        $elementConfig->attr->value = $elementsConfig->value;
-      }
-
-      // If element is not have a html tag, render it forms a template
-      if (isset(TCF_PATH_TEMPLATES_COMPONENTS[$htmlTag])) {
-        $templateFile = realpath(TCF_PATH_TEMPLATES_COMPONENTS[$htmlTag] . $elementConfig->file . '.latte');
-
-        // Ignore if template file not exist
-        if ($templateFile === false) {
-          continue;
-        }
-
-        unset($elementConfig->file);
-
-        // Argument 2 passed renderToString must be of the type array
-        if (is_object($elementConfig)) {
-          $fixElementConfig = ModuleHelper::objectToArray($elementConfig);
-        }
-
-        $oHTML = self::$engine->renderToString($templateFile, $fixElementConfig);
-        $oElement->addHtml($oHTML);
-      }
-
-      // Generate a html tag
-      $oHTML = self::generateHtmlTag($htmlTag, $elementConfig);
-
+      $oHTML = self::generateElement($elementConfig);
       $oElement->addHtml($oHTML);
     }
 
@@ -169,6 +160,67 @@ final class ModuleTemplate {
     return (string) $oElement;
   }
 
+  /**
+   * Generate a element by config
+   *
+   * @param stdClass $elementConfig The element config
+   *
+   * @return string
+   */
+  public static function generateElement(stdClass $elementConfig): string {
+    $oHTML = '';
+
+    // Ignore if the configuration is invalid
+    if (empty($elementConfig->htmltag)) {
+      return $oHTML;
+    }
+
+    $htmlTag = $elementConfig->htmltag;
+    unset($elementConfig->htmltag);
+
+    // Get data for the item may be callback
+    array_walk($elementConfig, [ModuleHelper::class, 'lazyInvokeArgsRecursive']);
+
+    // Try to get an optional value if named (possibly an optional id)
+    $elementValue = false;
+    if (isset($elementConfig->attr->name)) {
+      $elementName  = $elementConfig->attr->name;
+      $elementValue = ModuleConfig::Option()->$elementName;
+    }
+
+    // If there is an attr name it will have a value, but not overwritten
+    if ($elementValue && !isset($elementConfig->attr->value)) {
+      $elementConfig->attr->value = $elementValue;
+    }
+
+    // If it is not named, it will have the value of the main element
+    if (!isset($elementConfig->attr->name) && isset($elementsConfig->value) && !isset($elementConfig->attr->value)) {
+      $elementConfig->attr->name  = $elementsConfig->name;
+      $elementConfig->attr->value = $elementsConfig->value;
+    }
+
+    // If element is not have a html tag, render it forms a template
+    if (isset(TCF_PATH_TEMPLATES_COMPONENTS[$htmlTag])) {
+      $templateFile = realpath(TCF_PATH_TEMPLATES_COMPONENTS[$htmlTag] . $elementConfig->file . '.latte');
+
+      // Ignore if template file not exist
+      if ($templateFile !== false) {
+        unset($elementConfig->file);
+
+        // Argument 2 passed renderToString must be of the type array
+        if (is_object($elementConfig)) {
+          $fixElementConfig = ModuleHelper::objectToArray($elementConfig);
+        }
+
+        $oHTML = self::$engine->renderToString($templateFile, $fixElementConfig);
+      }
+    } else {
+      // Generate a html tag
+      $oHTML = self::generateHtmlTag($htmlTag, $elementConfig);
+    }
+
+    return (string) $oHTML;
+  }
   /**
    * Generate a html tag
    *

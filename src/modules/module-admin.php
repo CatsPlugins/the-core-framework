@@ -43,7 +43,7 @@ final class ModuleAdmin {
   public static function __callStatic(string $method, array $arguments) {
     return ModuleHelper::autoTriggerEventMethod(self::class, $method, $arguments);
   }
-  
+
   /**
    * Init Module Admin
    *
@@ -53,6 +53,9 @@ final class ModuleAdmin {
     if (is_admin()) {
       // Create admin menu
       ModuleEvent::on('admin_menu', [self::class, 'createMenus']);
+
+      // Setup admin assets
+      self::setupAssets();
     }
   }
 
@@ -71,7 +74,7 @@ final class ModuleAdmin {
     // Notification
     ModuleEvent::on('admin_notices', [ModuleRender::class, 'sendAdminNotification']);
 
-    // Call setup settings
+    // Setup admin pages
     ModuleEvent::on('admin_init', [self::class, 'setupPages']);
   }
 
@@ -185,15 +188,49 @@ final class ModuleAdmin {
     $pagesConfig = ModuleConfig::Admin()->PAGES;
 
     foreach ($pagesConfig as $pageId => $pageConfig) {
-
-      // Add assets files
-      if (isset($pageConfig->assets)) {        
-        ModuleControl::registerAssetsFiles($pageConfig->assets);
+      // Setup ajax
+      if (isset($pageConfig->ajax)) {
+        ModuleRequest::setupMultipleAjax($pageConfig->ajax);
       }
 
       $finalPageId = ModuleCore::$textDomain . '_' . $pageId;
 
       self::addSettingsSections($finalPageId, $pageConfig->sections);
+    }
+  }
+
+  /**
+   * Register assets files of pages
+   *
+   * @return void
+   */
+  public static function setupAssets(): void {
+    $pagesConfig = ModuleConfig::Admin()->PAGES;
+
+    // Add default filter js variable for admin setting page
+    ModuleEvent::on(
+      '_admin_setting_js_variable',
+      function ($jsVariable) {
+        $jsVariable['ajax']['url'] = esc_url_raw(admin_url('admin-ajax.php'));
+        $jsVariable['translated']  = [
+          'ajaxError'   => _t('An error has occurred while sending the request'),
+          'chooseImage' => _t('Choose a image'),
+          'noChanged' => _t('No options changed!'),
+          'saveSuccess' => _t('Save options success!'),
+          'saveFailed'  => _t('Save options failed!'),
+        ];
+        return $jsVariable;
+      }
+    );
+
+    foreach ($pagesConfig as $pageId => $pageConfig) {
+      if (isset($pageConfig->assets)) {
+        ModuleControl::registerAssetsFiles($pageConfig->assets);
+      }
+
+      if (isset($pageConfig->jsData)) {
+        ModuleControl::provideDataJs($pageConfig->jsData);
+      }
     }
   }
 
@@ -226,7 +263,7 @@ final class ModuleAdmin {
   public static function addSettingsSection(string $sectionId, stdClass $sectionConfig): void {
     $sectionConfig->callback = ModuleHelper::fixCallback($sectionConfig->callback);
     //bdump([$sectionId, $sectionConfig->title, $sectionConfig->callback ?? null, $sectionConfig->tab], 'addSettingsSection');
-    add_settings_section($sectionId, $sectionConfig->title, $sectionConfig->callback ?? null, $sectionConfig->tab);
+    add_settings_section($sectionId, $sectionConfig->section_title, $sectionConfig->callback ?? null, $sectionConfig->tab);
   }
 
   /**
@@ -291,6 +328,6 @@ final class ModuleAdmin {
 
     // Call generateElementHTML to generate html by $optionElements;
     //bdump([$optionId, $sectionConfig->title, [ModuleTemplate::class, 'generateElements'], $sectionConfig->tab, $sectionId, $optionElements], 'addSettingsField');
-    add_settings_field($optionId, $sectionConfig->title, [ModuleTemplate::class, 'generateElements'], $sectionConfig->tab, $sectionId, $optionElements);
+    add_settings_field($optionId, $sectionConfig->field_title, [ModuleTemplate::class, 'generateElements'], $sectionConfig->tab, $sectionId, $optionElements);
   }
 }

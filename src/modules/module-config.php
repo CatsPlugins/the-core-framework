@@ -19,6 +19,7 @@ defined('TCF_PATH_BASE') or die('No script kiddies please!');
 use CatsPlugins\TheCore\ModuleHelper;
 use Nette\Neon\Exception;
 use Nette\Neon\Neon;
+use Nette\Utils\Arrays;
 use Nette\Utils\FileSystem;
 use Nette\Utils\Finder;
 use Nette\Utils\Json;
@@ -135,10 +136,11 @@ final class ModuleConfig {
    * @return void
    */
   public static function returnValueConstants(string $contents): string {
-    $variables = self::findVariablesConfig($contents);
+    $variables = self::findVariablesConfig($contents);    
 
     foreach ($variables as $name) {
       $value    = ModuleHelper::constant($name);
+      //bdump($value, 'returnValueConstants');
       $contents = str_replace($name, $value, $contents);
     }
 
@@ -154,11 +156,11 @@ final class ModuleConfig {
    */
   public static function returnValueVariable(string $contents): string {
     $variables = self::findVariablesConfig($contents);
-    //bdump($variables, 'returnValueCallable');
 
     foreach ($variables as $name) {
       $variable = Strings::substring($name, 1, -1);
       $value    = ModuleHelper::getVariableFormString($variable);
+      //bdump($value, 'returnValueVariable');
       $contents = str_replace($name, $value, $contents);
     }
 
@@ -173,13 +175,19 @@ final class ModuleConfig {
    * @return array
    */
   private static function findVariablesConfig(string $contents): array{
-    $variables = Strings::match($contents, '/(\%[A-Z_:\$]+\%)/i');
+    $variables = Strings::matchAll($contents, '/\%[A-Z_:->\$]+\%/im');
 
     if (is_null($variables)) {
       return [];
     }
 
-    return array_unique($variables);
+    $variables = Arrays::flatten($variables);
+
+    $variables = array_unique($variables);
+
+    //bdump($variables, 'findVariablesConfig');
+
+    return $variables;
   }
 
   /**
@@ -205,6 +213,7 @@ final class ModuleConfig {
     }
 
     // Only read configuration file in first time
+    // * Speed up!
     if (!isset(self::$config[$name])) {
       // Get config
       self::$config[$name] = self::getConfigValue($name);

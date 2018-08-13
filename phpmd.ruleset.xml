@@ -34,6 +34,15 @@
     <rule ref="rulesets/design.xml/NumberOfChildren"/>
     <rule ref="rulesets/design.xml/DepthOfInheritance"/>
     <rule ref="rulesets/design.xml/CouplingBetweenObjects"/>
-    <rule ref="rulesets/naming.xml"/>
+    <rule ref="rulesets/naming.xml/ShortVariable"/>
+    <rule ref="rulesets/naming.xml/LongVariable"/>
+    <rule ref="rulesets/naming.xml/ShortMethodName">
+        <properties>
+            <property name="minimum" value="2"/>
+        </properties>
+    </rule>
+    <rule ref="rulesets/naming.xml/ConstructorWithNameAsEnclosingClass"/>
+    <rule ref="rulesets/naming.xml/ConstantNamingConventions"/>
+    <rule ref="rulesets/naming.xml/BooleanGetMethodName"/>
     <rule ref="rulesets/unusedcode.xml"/>
 </ruleset>
