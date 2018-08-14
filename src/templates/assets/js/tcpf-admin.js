@@ -1,24 +1,24 @@
 /*jshint esversion: 6 */
-var tcfFunction;
+var tcpfFunction;
 readyDOM(() => {
 
   jQuery(document).ready($ => {
-    if (typeof tcfData === 'undefined') {
-      console.error("Core: tcfData isn't set.");
+    if (typeof tcpfData === 'undefined') {
+      console.error("Core: tcpfData isn't set.");
       return;
     }
 
-    console.log('tcfData', tcfData);
+    console.log('tcpfData', tcpfData);
 
-    tcfFunction = {
+    tcpfFunction = {
       sendAjax: (e, args) => {
         console.log(args, 'arguments callback');
 
         let options = args.data;
         var response = {};
 
-        if (!args.event) {
-          response.message = tcfData.translated.ajaxError;
+        if (!args.action) {
+          response.message = tcpfData.translated.ajaxError;
           return response;
         }
 
@@ -28,13 +28,13 @@ readyDOM(() => {
           dataType: 'json',
           data: {
             action: args.action,
-            event: args.event,
+            nonce: tcpfData.ajax.nonce,
             options: options
           }
         }).always(data => {
           response = 'responseJSON' in data ? data.responseJSON : data;
-          if (typeof tcfFunction[args.callback] === 'function') {
-            tcfFunction[args.callback](response);
+          if (typeof tcpfFunction[args.callback] === 'function') {
+            tcpfFunction[args.callback](response);
           }
           return response;
         });
@@ -82,7 +82,7 @@ readyDOM(() => {
         let html = '';
         console.log('showModal', response);
         if (typeof response === 'object') {
-          html = response.success ? response.message : tcfFunction.printResponse(response);
+          html = response.success ? response.message : tcpfFunction.printResponse(response);
         } else {
           html = response;
         }
@@ -128,7 +128,7 @@ readyDOM(() => {
               newData.push(element);
             }
           } else {
-            newData = tcfFunction.mergeObjectRecursive(element, keyMatch, keyValue);
+            newData = tcpfFunction.mergeObjectRecursive(element, keyMatch, keyValue);
           }
         });
         return newData;
@@ -175,11 +175,11 @@ readyDOM(() => {
             let funcName = aCallback[0];
             let args = aCallback[1];
 
-            if (typeof tcfFunction[funcName] === 'function') {
+            if (typeof tcpfFunction[funcName] === 'function') {
               $(element).click(function (e) {
                 console.log('Onclick form tabs', funcName, args);
                 e.preventDefault();
-                tcfFunction[funcName](args);
+                tcpfFunction[funcName](args);
               });
             }
           }
@@ -192,11 +192,11 @@ readyDOM(() => {
             $(element).removeData('onclick');
             let funcName = aCallback[0];
             let args = aCallback[1];
-            if (typeof tcfFunction[funcName] === 'function') {
+            if (typeof tcpfFunction[funcName] === 'function') {
               $(element).click(function (e) {
                 //console.log('Onclick form content tab', funcName, args);
                 e.preventDefault();
-                tcfFunction[funcName](e, args);
+                tcpfFunction[funcName](e, args);
               });
             }
           }
@@ -208,10 +208,10 @@ readyDOM(() => {
             let funcName = aCallback[0];
             let args = aCallback[1];
 
-            if (typeof tcfFunction[funcName] === 'function') {
+            if (typeof tcpfFunction[funcName] === 'function') {
               $(element).change(function (e) {
                 //console.log('Onchange form section', funcName, args);
-                tcfFunction[funcName](e, args);
+                tcpfFunction[funcName](e, args);
               });
             }
           }
@@ -223,16 +223,16 @@ readyDOM(() => {
             let funcName = aCallback[0];
             let args = aCallback[1];
 
-            if (typeof tcfFunction[funcName] === 'function') {
+            if (typeof tcpfFunction[funcName] === 'function') {
               //console.log('Onload form section', funcName, args);
-              tcfFunction[funcName](element, args);
+              tcpfFunction[funcName](element, args);
             }
           }
         });
 
         // Materialize Range
-        $('input[type=range]').map(tcfFunction.setRangeValueFormSlider);
-        $('input[type=range]').on('change mousemove', tcfFunction.setRangeValueFormSlider);
+        $('input[type=range]').map(tcpfFunction.setRangeValueFormSlider);
+        $('input[type=range]').on('change mousemove', tcpfFunction.setRangeValueFormSlider);
 
         // WP Color picker
         if ($('input[choose-color]').length > 0) {
@@ -269,7 +269,7 @@ readyDOM(() => {
             inputTarget.val(JSON.stringify(result));
 
             // Add tooltip
-            tcfFunction.addChipTooltip(chip);
+            tcpfFunction.addChipTooltip(chip);
           },
           onChipDelete: function (e) {
             // Update input value
@@ -279,14 +279,14 @@ readyDOM(() => {
           }
         };
 
-        for (var id in tcfData.settings) {
-          if (tcfData.settings[id].type === 'chips') {
-            optionsMaterializeChip = Object.assign({}, optionsMaterializeChip, tcfData.settings[id]);
+        for (var id in tcpfData.settings) {
+          if (tcpfData.settings[id].type === 'chips') {
+            optionsMaterializeChip = Object.assign({}, optionsMaterializeChip, tcpfData.settings[id]);
             let instance = $('#' + id).chips(optionsMaterializeChip);
 
             // Add tooltip
             if (typeof instance[0] !== 'undefined') {
-              instance[0].M_Chips.$chips.map(tcfFunction.addChipTooltip);
+              instance[0].M_Chips.$chips.map(tcpfFunction.addChipTooltip);
             }
           }
         }
@@ -320,9 +320,9 @@ readyDOM(() => {
           }
           //  Extend the wp.media object
           mediaUploader = wp.media({
-            title: tcfData.translated.chooseImage,
+            title: tcpfData.translated.chooseImage,
             button: {
-              text: tcfData.translated.chooseImage
+              text: tcpfData.translated.chooseImage
             },
             multiple: false
           });
@@ -337,7 +337,7 @@ readyDOM(() => {
         });
 
         //  Can add button get token from server by js instead of callback in settings_field //
-        tcfFunction.initSubmit();
+        tcpfFunction.initSubmit();
       },
       initSubmit: () => {
         // Submit Ajax
@@ -376,11 +376,10 @@ readyDOM(() => {
           });
 
           // Filter value setting
-          options = tcfFunction.mergeObjectRecursive(options, 'name', 'value');
-          console.log(options);
+          options = tcpfFunction.mergeObjectRecursive(options, 'name', 'value');
 
           if (options.length === 0) {
-            let toastContent = $('<span>' + tcfData.translated.noChanged + '</span>');
+            let toastContent = $('<span>' + tcpfData.translated.noChanged + '</span>');
             M.toast({
               html: toastContent
             });
@@ -389,21 +388,20 @@ readyDOM(() => {
 
           let postData = {
             'method': 'POST',
-            'url': tcfData.ajax.url,
-            'action': 'admin_ajax',
-            'event': 'saveOptions',
+            'url': tcpfData.ajax.url,
+            'action': 'save_options', // don't use camelCase, only use snake_case
             'callback': 'showModal',
             'data': options
           };
-          console.log(postData);
-          tcfFunction.sendAjax(e, postData);
+
+          tcpfFunction.sendAjax(e, postData);
         });
       }
     };
 
     // Init Component Element
     setTimeout(function () {
-      tcfFunction.initComponent();
+      tcpfFunction.initComponent();
     }, 500);
   });
 }, false);

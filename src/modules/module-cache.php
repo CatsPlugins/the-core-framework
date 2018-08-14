@@ -1,4 +1,4 @@
-<?php
+<?php declare (strict_types = 1);
 /**
  * The Plugin Core Framework for Wordpress
  *
@@ -11,12 +11,10 @@
  * @link     https://catsplugins.com
  */
 
-declare (strict_types = 1);
-
 namespace CatsPlugins\TheCore;
 
 // Blocking access direct to the plugin
-defined('TCF_PATH_BASE') or die('No script kiddies please!');
+defined('TCPF_WP_PATH_BASE') or die('No script kiddies please!');
 
 use Nette\Caching\Cache;
 use Nette\Caching\Storages\FileStorage;

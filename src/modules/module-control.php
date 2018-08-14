@@ -1,4 +1,4 @@
-<?php
+<?php declare (strict_types = 1);
 /**
  * The Plugin Core Framework for Wordpress
  *
@@ -11,14 +11,12 @@
  * @link     https://catsplugins.com
  */
 
-declare (strict_types = 1);
-
 namespace CatsPlugins\TheCore;
 
 use Nette\Utils\Strings;
 
 // Blocking access direct to the plugin
-defined('TCF_PATH_BASE') or die('No script kiddies please!');
+defined('TCPF_WP_PATH_BASE') or die('No script kiddies please!');
 
 /**
  * The Module Control
@@ -279,7 +277,7 @@ final class ModuleControl {
    */
   private static function setDataToJs(string $file, string $jsName, string $filter): bool {
     $result = self::getAssetsInfo($file);
-    bdump([$result, $jsName, $filter], 'setDataToJs');
+    //bdump([$result, $jsName, $filter], 'setDataToJs');
 
     if ($result === false) {
       return false;
@@ -295,7 +293,7 @@ final class ModuleControl {
     $success = ModuleEvent::on(
       'wp_loaded',
       function () use ($fileId, $jsName, $jsData) {
-        bdump([$fileId, $jsName, $jsData], 'wp_localize_script');
+        //bdump([$fileId, $jsName, $jsData], 'wp_localize_script');
         wp_localize_script($fileId, $jsName, $jsData);
       }
     );

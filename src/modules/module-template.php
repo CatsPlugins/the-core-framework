@@ -1,4 +1,4 @@
-<?php
+<?php declare (strict_types = 1);
 /**
  * The Plugin Core Framework for Wordpress
  *
@@ -11,8 +11,6 @@
  * @link     https://catsplugins.com
  */
 
-declare (strict_types = 1);
-
 namespace CatsPlugins\TheCore;
 
 use Latte\Engine;
@@ -23,7 +21,7 @@ use Nette\Utils\Html;
 use \stdClass;
 
 // Blocking access direct to the plugin
-defined('TCF_PATH_BASE') or die('No script kiddies please!');
+defined('TCPF_WP_PATH_BASE') or die('No script kiddies please!');
 
 /**
  * The Module Template
@@ -92,14 +90,14 @@ final class ModuleTemplate {
    * Generate a page by config
    *
    * @param string $pageId Page id in config
-   * 
+   *
    * @return string
    */
   public static function generatePage(string $pageId): string {
     $oHTML = '';
 
     // Get file path of template
-    $templateFile = realpath(TCF_PATH_TEMPLATES_COMPONENTS['page'] . $pageId . '.latte');
+    $templateFile = realpath(TCPF_WP_PATH_TEMPLATES_COMPONENTS['page'] . $pageId . '.latte');
 
     // Show error if file not exist
     if ($templateFile === false) {
@@ -147,6 +145,11 @@ final class ModuleTemplate {
         continue;
       }
 
+      // If it is not named, it will have the value of the main element
+      if (!isset($elementConfig->attr->name)) {
+        $elementConfig->attr->name = $elementsConfig->name;
+      }
+
       $oHTML = self::generateElement($elementConfig);
       $oElement->addHtml($oHTML);
     }
@@ -169,6 +172,8 @@ final class ModuleTemplate {
    */
   public static function generateElement(stdClass $elementConfig): string {
     $oHTML = '';
+
+    //bdump($elementConfig, 'Element Config');
 
     // Ignore if the configuration is invalid
     if (empty($elementConfig->htmltag)) {
@@ -193,15 +198,9 @@ final class ModuleTemplate {
       $elementConfig->attr->value = $elementValue;
     }
 
-    // If it is not named, it will have the value of the main element
-    if (!isset($elementConfig->attr->name) && isset($elementsConfig->value) && !isset($elementConfig->attr->value)) {
-      $elementConfig->attr->name  = $elementsConfig->name;
-      $elementConfig->attr->value = $elementsConfig->value;
-    }
-
     // If element is not have a html tag, render it forms a template
-    if (isset(TCF_PATH_TEMPLATES_COMPONENTS[$htmlTag])) {
-      $templateFile = realpath(TCF_PATH_TEMPLATES_COMPONENTS[$htmlTag] . $elementConfig->file . '.latte');
+    if (isset(TCPF_WP_PATH_TEMPLATES_COMPONENTS[$htmlTag])) {
+      $templateFile = realpath(TCPF_WP_PATH_TEMPLATES_COMPONENTS[$htmlTag] . $elementConfig->file . '.latte');
 
       // Ignore if template file not exist
       if ($templateFile !== false) {

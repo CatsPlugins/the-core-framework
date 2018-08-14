@@ -1,4 +1,4 @@
-<?php
+<?php declare (strict_types = 1);
 /**
  * The Plugin Core Framework for Wordpress
  *
@@ -11,8 +11,6 @@
  * @link     https://catsplugins.com
  */
 
-declare (strict_types = 1);
-
 namespace CatsPlugins\TheCore;
 
 use Nette\Utils\Html;
@@ -21,7 +19,7 @@ use Nette\Utils\JsonException;
 use Tracy\Debugger;
 
 // Blocking access direct to the plugin
-defined('TCF_PATH_BASE') or die('No script kiddies please!');
+defined('TCPF_WP_PATH_BASE') or die('No script kiddies please!');
 
 /**
  * The Module Render
@@ -66,7 +64,7 @@ final class ModuleRender {
     header('Content-Type: application/json;charset=UTF-8', true);
 
     echo $content;
-    exit;
+    wp_die();
   }
 
   /**
@@ -86,7 +84,7 @@ final class ModuleRender {
     header('Content-Type: text; charset=UTF-8', true);
 
     echo $html;
-    exit;
+    wp_die();
   }
 
   /**
@@ -107,7 +105,7 @@ final class ModuleRender {
     header('Content-Type: text/html; charset=UTF-8', true);
 
     echo $html;
-    exit;
+    wp_die();
   }
 
   /**
@@ -123,7 +121,7 @@ final class ModuleRender {
 
     // Only show notification on plugin setting, or show all
     if (stripos($currentScreen->id, $pluginScreen) !== false || $showEverywhere === true) {
-      ModuleControl::trigger('_show_admin_notification');
+      ModuleEvent::trigger('_show_admin_notification');
     }
   }
 

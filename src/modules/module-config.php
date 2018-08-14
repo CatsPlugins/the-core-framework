@@ -14,7 +14,7 @@
 namespace CatsPlugins\TheCore;
 
 // Blocking access direct to the plugin
-defined('TCF_PATH_BASE') or die('No script kiddies please!');
+defined('TCPF_WP_PATH_BASE') or die('No script kiddies please!');
 
 use CatsPlugins\TheCore\ModuleHelper;
 use Nette\Neon\Exception;
@@ -136,10 +136,10 @@ final class ModuleConfig {
    * @return void
    */
   public static function returnValueConstants(string $contents): string {
-    $variables = self::findVariablesConfig($contents);    
+    $variables = self::findVariablesConfig($contents);
 
     foreach ($variables as $name) {
-      $value    = ModuleHelper::constant($name);
+      $value = ModuleHelper::constant($name);
       //bdump($value, 'returnValueConstants');
       $contents = str_replace($name, $value, $contents);
     }
@@ -175,7 +175,7 @@ final class ModuleConfig {
    * @return array
    */
   private static function findVariablesConfig(string $contents): array{
-    $variables = Strings::matchAll($contents, '/\%[A-Z_:->\$]+\%/im');
+    $variables = Strings::matchAll($contents, '/\%[A-Z_ :->\\\$]+\%/im');
 
     if (is_null($variables)) {
       return [];
@@ -346,30 +346,30 @@ final class ModuleConfig {
    */
   private static function formatOptionValue($value, string $type, int $mode) {
     switch ($type) {
-    case 'string':
-      $value = strval($value);
-      break;
-    case 'integer':
-      $value = intval($value);
-      break;
-    case 'number':
-      $value = floatval($value);
-      break;
-    case 'boolean':
-      $value = boolval($value) ? 1 : 0;
-      break;
-    case 'array':
-      if ($mode === self::READ) {
-        if (is_string($mValue)) {
-          $value = Json::decode($value);
-        }
-        $value = (is_array($value) || is_object($value)) ? $value : [$value];
+      case 'string':
+        $value = strval($value);
+        break;
+      case 'integer':
+        $value = intval($value);
+        break;
+      case 'number':
+        $value = floatval($value);
+        break;
+      case 'boolean':
+        $value = boolval($value) ? 1 : 0;
+        break;
+      case 'array':
+        if ($mode === self::READ) {
+          if (is_string($mValue)) {
+            $value = Json::decode($value);
+          }
+          $value = (is_array($value) || is_object($value)) ? $value : [$value];
 
-      } elseif ($mode === self::WRITE) {
-        $value = (is_array($value) || is_object($value)) ? $value : [$value];
-        $value = Json::encode($value, Json::FORCE_ARRAY);
-      }
-      break;
+        } elseif ($mode === self::WRITE) {
+          $value = (is_array($value) || is_object($value)) ? $value : [$value];
+          $value = Json::encode($value, Json::FORCE_ARRAY);
+        }
+        break;
     }
 
     return $value;

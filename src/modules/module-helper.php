@@ -1,4 +1,4 @@
-<?php
+<?php declare (strict_types = 1);
 /**
  * The Plugin Core Framework for Wordpress
  *
@@ -11,8 +11,6 @@
  * @link     https://catsplugins.com
  */
 
-declare (strict_types = 1);
-
 namespace CatsPlugins\TheCore;
 
 use GuzzleHttp\Client;
@@ -24,7 +22,7 @@ use Nette\Utils\Strings;
 use \stdClass;
 
 // Blocking access direct to the plugin
-defined('TCF_PATH_BASE') or die('No script kiddies please!');
+defined('TCPF_WP_PATH_BASE') or die('No script kiddies please!');
 
 /**
  * The Module Helper
@@ -309,29 +307,32 @@ final class ModuleHelper {
     }
 
     // Get full class namespace
-    $callback[0] = self::getFullClassNameSpace($callback[0]);
+    $callable = self::getFullClassNameSpace($callback[0]);
+    $args     = $callback[1];
 
-    if (Strings::contains($callback[0], '(')) {
-      $args        = Strings::after($callback[0], '(', 1);
-      $callback[1] = Strings::before($args, ')', 1);
-      $callback[0] = Strings::before($callback[0], '(', 1);
+    // If format: class::method(args)
+    if (Strings::contains($callable, '(')) {
+      $args     = Strings::after($callable, '(', 1);
+      $args     = Strings::before($args, ')', 1);
+      $callable = Strings::before($callable, '(', 1);
     }
 
-    if (Strings::contains($callback[0], '::')) {
-      $class  = Strings::before($callback[0], '::', 1);
-      $method = Strings::after($callback[0], '::', 1);
+    if (Strings::contains($callable, '::')) {
+      $class  = Strings::before($callable, '::', 1);
+      $method = Strings::after($callable, '::', 1);
 
-      $callback[0] = [$class, $method];
+      $callable = [$class, $method];
     }
 
-    //bdump($callback, 'fixed Callback');
     try {
-      Callback::check($callback[0]);
+      Callback::check($callable);
     } catch (InvalidArgumentException $e) {
       bdump($e, 'Callback Invalid');
       return false;
     }
-    return $callback;
+
+    //bdump([$callable, $args], 'fixed Callback');
+    return [$callable, $args];
   }
 
   /**
@@ -341,7 +342,7 @@ final class ModuleHelper {
    *
    * @return void
    */
-  public static function getVariableFormString(string $string) {    
+  public static function getVariableFormString(string $string) {
     if (Strings::contains($string, '::$')) {
       $class    = Strings::before($string, '::', 1);
       $variable = Strings::after($string, '::$', 1);
@@ -372,8 +373,9 @@ final class ModuleHelper {
   public static function getFullClassNameSpace(string $class, stdClass $parent = null) {
     $parent = $parent ?? __NAMESPACE__;
 
-    if (Strings::contains($class, '\\') === false) {
-      $class = $parent . '\\' . $class;
+    if (Strings::startsWith($class, '\\\\') !== false) {
+      $class = Strings::substring($class, 1);
+      $class = $parent . $class;
     }
     return $class;
   }

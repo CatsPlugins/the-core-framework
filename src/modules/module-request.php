@@ -1,4 +1,4 @@
-<?php
+<?php declare (strict_types = 1);
 /**
  * The Plugin Core Framework for Wordpress
  *
@@ -11,15 +11,13 @@
  * @link     https://catsplugins.com
  */
 
-declare (strict_types = 1);
-
 namespace CatsPlugins\TheCore;
 
 use Nette\InvalidArgumentException;
 use Nette\Utils\Callback;
 
 // Blocking access direct to the plugin
-defined('TCF_PATH_BASE') or die('No script kiddies please!');
+defined('TCPF_WP_PATH_BASE') or die('No script kiddies please!');
 
 /**
  * The Module Request
@@ -68,7 +66,7 @@ final class ModuleRequest {
    * @return void
    */
   public static function setupAjax(string $capability, string $action, string $callback): void {
-    // Convert string callback to object 
+    // Convert string callback to object
     $callback = ModuleHelper::fixCallback($callback);
 
     // Create a wp_ajax managed by managerAjaxRequest event
@@ -76,10 +74,11 @@ final class ModuleRequest {
 
     // Create a wp_ajax_nopriv managed by managerAjaxRequest event
     if ($capability === 'all') {
-      ModuleEvent::on('wp_ajax_nopriv' . $action, [self::class, 'managerAjaxRequest']);
+      ModuleEvent::on('wp_ajax_nopriv_' . $action, [self::class, 'managerAjaxRequest']);
     }
 
     // Add this action in filter _callback_ajax
+    $action = ModuleEvent::makeTag($action);
     ModuleEvent::on(
       '_callback_ajax',
       function ($callbacks) use ($capability, $action, $callback) {
@@ -104,9 +103,9 @@ final class ModuleRequest {
     $method = filter_input(INPUT_SERVER, 'REQUEST_METHOD');
 
     if ($method === 'GET') {
-      $action = filter_input(INPUT_GET, 'event', FILTER_SANITIZE_ENCODED);
+      $action = filter_input(INPUT_GET, 'action', FILTER_SANITIZE_ENCODED);
     } elseif ($method === 'POST') {
-      $action = filter_input(INPUT_POST, 'event', FILTER_SANITIZE_ENCODED);
+      $action = filter_input(INPUT_POST, 'action', FILTER_SANITIZE_ENCODED);
     }
 
     if (empty($action)) {
@@ -118,6 +117,8 @@ final class ModuleRequest {
     // Get config ajax event form filter
     $config = ModuleEvent::filter('_callback_ajax', []);
 
+    //check_ajax_referer($action, 'nonce');
+
     $capability = ModuleHelper::currentUserHave($config[$action]['capability']);
 
     if ($capability === false && $config[$action]['capability'] !== 'all') {
@@ -126,7 +127,7 @@ final class ModuleRequest {
       ModuleRender::sendJson($result);
     }
 
-    $callable = $config[$action]['callback'] ?? false;
+    $callable = $config[$action]['callback'][0] ?? null;
 
     if ($callable === false) {
       http_response_code(404);
@@ -135,43 +136,12 @@ final class ModuleRequest {
     }
 
     try {
-      $result = Callback::invokeArgs($callable, $result);
+      $result = Callback::invoke($callable, $result);
     } catch (InvalidArgumentException $e) {
-      bdump($e, 'InvalidArgumentException');
       http_response_code(500);
       $result['message'] = _t($e->getMessage());
     }
 
     ModuleRender::sendJson($result);
-  }
-
-  /////////// Callback Ajax /////////////
-  public function saveOptions($result) {
-    $aFilter = [
-      'options' => [
-        'flags' => FILTER_FORCE_ARRAY,
-        'name'  => FILTER_SANITIZE_ENCODED,
-        'value' => FILTER_SANITIZE_ENCODED,
-      ],
-    ];
-
-    $aValidate = filter_input_array(INPUT_POST, $aFilter);
-
-    if (empty($aValidate)) {
-      http_response_code(403);
-      $result['message'] = __('Save options failed!', PWP_TEXTDOMAIN);
-      return;
-    }
-
-    $aOption = $aValidate['options'];
-
-    foreach ($aOption as $sOption => $aValue) {
-      $aValue['value']   = is_string($aValue['value']) ? stripslashes($aValue['value']) : $aValue['value'];
-      $aOption[$sOption] = $this->PWP->setting->setOption($aValue['name'], $aValue['value']);
-    }
-
-    $result['success'] = true;
-    $result['message'] = __('Save options success!', PWP_TEXTDOMAIN);
-    $result['debug']   = $aOption;
   }
 }

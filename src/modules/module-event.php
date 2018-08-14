@@ -1,4 +1,4 @@
-<?php
+<?php declare (strict_types = 1);
 /**
  * The Plugin Core Framework for Wordpress
  *
@@ -11,8 +11,6 @@
  * @link     https://catsplugins.com
  */
 
-declare (strict_types = 1);
-
 namespace CatsPlugins\TheCore;
 
 use Nette\InvalidArgumentException;
@@ -20,7 +18,7 @@ use Nette\Utils\Callback;
 use Nette\Utils\Strings;
 
 // Blocking access direct to the plugin
-defined('TCF_PATH_BASE') or die('No script kiddies please!');
+defined('TCPF_WP_PATH_BASE') or die('No script kiddies please!');
 
 /**
  * The Module Event
@@ -115,7 +113,7 @@ final class ModuleEvent {
    *
    * @return string
    */
-  private static function makeTag(string $tag): string {
+  public static function makeTag(string $tag): string {
     // Auto add textdomain for custom tag
     $tag = $tag[0] === '_' ? ModuleCore::$textDomain . $tag : $tag;
     $tag = Strings::replace(

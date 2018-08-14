@@ -1,4 +1,4 @@
-<?php
+<?php declare (strict_types = 1);
 /**
  * The Plugin Core Framework for Wordpress
  *
@@ -11,14 +11,12 @@
  * @link     https://catsplugins.com
  */
 
-declare (strict_types = 1);
-
 namespace CatsPlugins\TheCore;
 
 use \stdClass;
 
 // Blocking access direct to the plugin
-defined('TCF_PATH_BASE') or die('No script kiddies please!');
+defined('TCPF_WP_PATH_BASE') or die('No script kiddies please!');
 
 /**
  * The Module Admin
@@ -188,11 +186,6 @@ final class ModuleAdmin {
     $pagesConfig = ModuleConfig::Admin()->PAGES;
 
     foreach ($pagesConfig as $pageId => $pageConfig) {
-      // Setup ajax
-      if (isset($pageConfig->ajax)) {
-        ModuleRequest::setupMultipleAjax($pageConfig->ajax);
-      }
-
       $finalPageId = ModuleCore::$textDomain . '_' . $pageId;
 
       self::addSettingsSections($finalPageId, $pageConfig->sections);
@@ -207,29 +200,20 @@ final class ModuleAdmin {
   public static function setupAssets(): void {
     $pagesConfig = ModuleConfig::Admin()->PAGES;
 
-    // Add default filter js variable for admin setting page
-    ModuleEvent::on(
-      '_admin_setting_js_variable',
-      function ($jsVariable) {
-        $jsVariable['ajax']['url'] = esc_url_raw(admin_url('admin-ajax.php'));
-        $jsVariable['translated']  = [
-          'ajaxError'   => _t('An error has occurred while sending the request'),
-          'chooseImage' => _t('Choose a image'),
-          'noChanged' => _t('No options changed!'),
-          'saveSuccess' => _t('Save options success!'),
-          'saveFailed'  => _t('Save options failed!'),
-        ];
-        return $jsVariable;
-      }
-    );
-
-    foreach ($pagesConfig as $pageId => $pageConfig) {
+    foreach ($pagesConfig as $pageConfig) {
+      // Setup assets files
       if (isset($pageConfig->assets)) {
         ModuleControl::registerAssetsFiles($pageConfig->assets);
       }
 
+      // Setup js variable config
       if (isset($pageConfig->jsData)) {
         ModuleControl::provideDataJs($pageConfig->jsData);
+      }
+
+      // Setup ajax config
+      if (isset($pageConfig->ajax)) {
+        ModuleRequest::setupMultipleAjax($pageConfig->ajax);
       }
     }
   }

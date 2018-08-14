@@ -13,7 +13,7 @@
  */
 
 // Blocking access direct to the plugin
-defined('TCF_PATH_BASE') or die('No script kiddies please!');
+defined('TCPF_WP_PATH_BASE') or die('No script kiddies please!');
 
 if (!function_exists('_t')) {
   /**
