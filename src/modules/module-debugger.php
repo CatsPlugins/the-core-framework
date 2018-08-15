@@ -39,7 +39,7 @@ final class ModuleDebugger {
    */
   public static function init(bool $forceEnable = null) {
     if (!function_exists('wp_get_current_user')) {
-      include ABSPATH . "wp-includes/pluggable.php";
+      include_once ABSPATH . "wp-includes/pluggable.php";
     }
 
     // Fix output has been sent

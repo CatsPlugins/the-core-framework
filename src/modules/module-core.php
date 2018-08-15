@@ -14,7 +14,6 @@
 namespace CatsPlugins\TheCore;
 
 use Nette\Loaders\RobotLoader;
-use Nette\SmartObject;
 
 // Blocking access direct to the plugin
 defined('TCPF_WP_PATH_BASE') or die('No script kiddies please!');
@@ -33,7 +32,7 @@ defined('TCPF_WP_PATH_BASE') or die('No script kiddies please!');
 final class ModuleCore {
   public static $textDomain;
   public static $pluginPath;
-  public static $pluginVersion;
+  public static $pluginData;
 
   public static $logPath;
   public static $cachePath;
@@ -47,14 +46,20 @@ final class ModuleCore {
   /**
    * Initialization Module
    *
-   * @param array $config Config plugin [textDomain, pluginVersion, pluginPath]
+   * @param array $config Config plugin [string pluginPath, bool refreshModules]
    *
    * @return void
    */
   public static function init(array $config): void {
-    self::$textDomain    = $config['textdomain'];
-    self::$pluginPath    = realpath(plugin_dir_path($config['plugin_path'])) . DS;
-    self::$pluginVersion = $config['plugin_version'];
+    // Check callable get_plugin_data
+    if (!function_exists('get_plugin_data')) {
+      include_once ABSPATH . 'wp-admin/includes/plugin.php';
+    }
+    
+    self::$pluginPath = realpath(plugin_dir_path($config['plugin_path'])) . DS;
+    self::$pluginData = get_plugin_data($config['plugin_path'], false, false);
+
+    self::$textDomain = self::$pluginData['TextDomain'];
 
     self::$logPath      = self::$pluginPath . 'log' . DS;
     self::$cachePath    = self::$pluginPath . 'cache' . DS;
@@ -63,7 +68,7 @@ final class ModuleCore {
     self::$modulesPath  = self::$pluginPath . 'modules' . DS;
     self::$languagePath = self::$pluginPath . 'languages' . DS;
 
-    self::$assetsUrl = plugin_dir_url($config['plugin_path']) . 'assets';
+    self::$assetsUrl = plugin_dir_url(self::$pluginPath) . 'assets';
 
     self::loadModules($config['refresh_modules']);
   }

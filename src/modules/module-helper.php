@@ -102,7 +102,7 @@ final class ModuleHelper {
   public static function currentUserHave(string $capability): bool {
     // Load function wp_get_current_user if not exist
     if (!function_exists('wp_get_current_user')) {
-      include ABSPATH . 'wp-includes/pluggable.php';
+      include_once ABSPATH . 'wp-includes/pluggable.php';
     }
 
     return current_user_can($capability) ? true : false;
@@ -285,7 +285,7 @@ final class ModuleHelper {
    *
    * @param mixed $callback An unclear callback
    *
-   * @return void
+   * @return array|bool
    */
   public static function fixCallback($callback) {
     //bdump($callback, 'fix Callback');

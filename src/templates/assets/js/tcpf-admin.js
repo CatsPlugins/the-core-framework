@@ -28,7 +28,7 @@ readyDOM(() => {
           dataType: 'json',
           data: {
             action: args.action,
-            nonce: tcpfData.ajax.nonce,
+            hash: tcpfData.ajax.hash[args.action],
             options: options
           }
         }).always(data => {
@@ -38,6 +38,22 @@ readyDOM(() => {
           }
           return response;
         });
+      },      
+      showModal: response => {
+        let html = '';
+        console.log('showModal', response);
+        if (typeof response === 'object') {
+          html = response.message ? response.message : tcpfFunction.printResponse(response);
+        } else {
+          html = response;
+        }
+
+        M.toast({
+          html: html
+        });
+      },
+      printResponse: response => {
+        return JSON.stringify(response, null, '\t').replace(/\n/g, '<br>').replace(/\t/g, '&nbsp;&nbsp;&nbsp;');
       },
       setRangeValueFormSlider: (e, elm) => {
         let that;
@@ -77,22 +93,6 @@ readyDOM(() => {
           $(selector).show();
         }
 
-      },
-      showModal: response => {
-        let html = '';
-        console.log('showModal', response);
-        if (typeof response === 'object') {
-          html = response.success ? response.message : tcpfFunction.printResponse(response);
-        } else {
-          html = response;
-        }
-
-        M.toast({
-          html: html
-        });
-      },
-      printResponse: response => {
-        return JSON.stringify(response, null, '\t').replace(/\n/g, '<br>').replace(/\t/g, '&nbsp;&nbsp;&nbsp;');
       },
       addChipTooltip: chip => {
         var chipText = $(chip).clone().children().remove().end().text();

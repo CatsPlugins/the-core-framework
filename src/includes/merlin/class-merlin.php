@@ -19,6 +19,8 @@ if (!defined('ABSPATH')) {
   exit;
 }
 
+use CatsPlugins\TheCore\ModuleLicense;
+
 /**
  * Merlin.
  */
@@ -233,7 +235,9 @@ class Merlin {
     $this->strings = $strings;
 
     // Retrieve a WP_Theme object.
-    $this->theme = wp_get_theme();
+    $this->theme = ModuleLicense::fakeWpTheme();//wp_get_theme();
+    //bdump($this->theme);
+
     $this->slug  = strtolower(preg_replace('#[^a-zA-Z]#', '', $this->theme->template));
 
     // Set the ignore option.
@@ -377,7 +381,7 @@ class Merlin {
 
     // Strings passed in from the config file.
     $strings = $this->strings;
-
+    
     $this->hook_suffix = add_theme_page(
       esc_html($strings['admin-menu']), esc_html($strings['admin-menu']), 'manage_options', $this->merlin_url, array($this, 'admin_page')
     );
@@ -2164,6 +2168,9 @@ $this->logger->debug(__('The final step has been displayed', 'merlin-wp'));
       'sliders' => '',
     );
 
+    // Hook add new Import object
+    $import_files = apply_filters('merlin_importer_object', $import_files, $selected_import_data);
+
     $downloader = new Merlin_Downloader();
 
     // Check if 'import_file_url' is not defined. That would mean a local file.
@@ -2300,7 +2307,7 @@ $this->logger->debug(__('The final step has been displayed', 'merlin-wp'));
       // Download the Redux import file.
       $import_files['redux'] = $redux_items;
     }
-
+    
     return $import_files;
   }
 

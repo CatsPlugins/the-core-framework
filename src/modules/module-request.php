@@ -79,6 +79,7 @@ final class ModuleRequest {
 
     // Add this action in filter _callback_ajax
     $action = ModuleEvent::makeTag($action);
+
     ModuleEvent::on(
       '_callback_ajax',
       function ($callbacks) use ($capability, $action, $callback) {
@@ -89,6 +90,18 @@ final class ModuleRequest {
         return $callbacks;
       }
     );
+  }
+
+  /**
+   * Get the current hash key for each action
+   *
+   * @param string $action Action ajax
+   * 
+   * @return void
+   */
+  public static function getHash(string $action) {
+    // TODO: switch hash by auth mode
+    return wp_create_nonce($action);
   }
 
   /**
@@ -117,7 +130,12 @@ final class ModuleRequest {
     // Get config ajax event form filter
     $config = ModuleEvent::filter('_callback_ajax', []);
 
-    //check_ajax_referer($action, 'nonce');
+    // Check security by WP Nonce
+    if (check_ajax_referer($action, 'hash', false) === false) {
+      http_response_code(403);
+      $result['message'] = _t('Invalid request data.');
+      ModuleRender::sendJson($result);
+    }
 
     $capability = ModuleHelper::currentUserHave($config[$action]['capability']);
 

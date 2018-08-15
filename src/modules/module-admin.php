@@ -102,19 +102,18 @@ final class ModuleAdmin {
    */
   public static function addMenu(stdClass $menuConfig): void {
     // Auto fix function callback format
-    list($callback, $args) = ModuleHelper::fixCallback($menuConfig->callback);
+    list($callable, $args) = ModuleHelper::fixCallback($menuConfig->callback);
 
     // Check callback hash parameter
     if (!empty($args)) {
-      // Get hook of this menu
-      $hookName = get_plugin_page_hookname($menuConfig->slug, '');
+      $menuConfig = self::addCallbackWithParameter($menuConfig, $callable, $args);
+    }
 
-      // Add event with parameter
-      if (!empty($hookName)) {
-        $args = is_array($args) ? $args : [$args];
-        ModuleEvent::on($hookName, $callback, 10, 1, $args);
-        $callback = null;
-      }
+    //bdump($menuConfig, 'addMenu');
+
+    // Check callable add_menu_page
+    if (!function_exists('add_menu_page')) {
+      include_once ABSPATH . 'wp-admin/includes/plugin.php';
     }
 
     add_menu_page(
@@ -122,7 +121,7 @@ final class ModuleAdmin {
       $menuConfig->name,
       $menuConfig->capability,
       $menuConfig->slug,
-      $callback,
+      $menuConfig->callback,
       $menuConfig->icon_url,
       $menuConfig->position
     );
@@ -152,20 +151,14 @@ final class ModuleAdmin {
    */
   public static function addSubMenu(string $slug, stdClass $menuConfig): void {
     // Auto fix function callback format
-    list($callback, $args) = ModuleHelper::fixCallback($menuConfig->callback);
+    list($callable, $args) = ModuleHelper::fixCallback($menuConfig->callback);
 
     // Check callback hash parameter
     if (!empty($args)) {
-      // Get hook of this menu
-      $hookName = get_plugin_page_hookname($menuConfig->slug, $slug);
-
-      // Add event with parameter
-      if (!empty($hookName)) {
-        $args = is_array($args) ? $args : [$args];
-        ModuleEvent::on($hookName, $callback, 10, 1, $args);
-        $callback = null;
-      }
+      $menuConfig = self::addCallbackWithParameter($menuConfig, $callable, $args);
     }
+
+    //bdump($menuConfig, 'addSubMenu');
 
     add_submenu_page(
       $slug,
@@ -173,8 +166,42 @@ final class ModuleAdmin {
       $menuConfig->name,
       $menuConfig->capability,
       $menuConfig->slug,
-      $callback
+      $menuConfig->callback
     );
+  }
+
+  /**
+   * Add menu with callback hash parameter
+   *
+   * @param stdClass $menuConfig Menu Config
+   * @param any      $callable   Callable
+   * @param any      $args       Args of callback
+   *
+   * @return stdClass
+   */
+  private static function addCallbackWithParameter(stdClass $menuConfig, $callable, $args): stdClass {
+    global $admin_page_hooks;
+
+    // Check callable get_plugin_page_hookname
+    if (!function_exists('get_plugin_page_hookname')) {
+      include_once ABSPATH . 'wp-admin/includes/plugin.php';
+    }
+
+    // Get hook of this menu
+    $slug                    = plugin_basename($menuConfig->slug);
+    $admin_page_hooks[$slug] = sanitize_title($menuConfig->title);
+    $hookName                = get_plugin_page_hookname($slug, '');
+    $hasCapability           = ModuleHelper::currentUserHave($menuConfig->capability);
+
+    // Add event with parameter
+    if (!empty($hookName) && !empty($callable) && $hasCapability) {
+      $args = is_array($args) ? $args : [$args];
+      //bdump([$hookName, $callable, $args], 'addCallbackWithParameter');
+      ModuleEvent::on($hookName, $callable, 10, 1, $args);
+      $menuConfig->callback = null;
+    }
+
+    return $menuConfig;
   }
 
   /**
