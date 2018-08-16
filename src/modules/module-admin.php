@@ -13,6 +13,8 @@
 
 namespace CatsPlugins\TheCore;
 
+use Nette\InvalidArgumentException;
+use Nette\Utils\Callback;
 use \stdClass;
 
 // Blocking access direct to the plugin
@@ -196,7 +198,9 @@ final class ModuleAdmin {
     // Add event with parameter
     if (!empty($hookName) && !empty($callable) && $hasCapability) {
       $args = is_array($args) ? $args : [$args];
+
       //bdump([$hookName, $callable, $args], 'addCallbackWithParameter');
+      
       ModuleEvent::on($hookName, $callable, 10, 1, $args);
       $menuConfig->callback = null;
     }
@@ -213,6 +217,11 @@ final class ModuleAdmin {
     $pagesConfig = ModuleConfig::Admin()->PAGES;
 
     foreach ($pagesConfig as $pageId => $pageConfig) {
+      // Skip page is not page setting
+      if (!isset($pageConfig->sections)) {
+        continue;
+      }
+
       $finalPageId = ModuleCore::$textDomain . '_' . $pageId;
 
       self::addSettingsSections($finalPageId, $pageConfig->sections);

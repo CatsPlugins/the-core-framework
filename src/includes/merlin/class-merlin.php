@@ -1920,6 +1920,8 @@ $this->logger->debug(__('The final step has been displayed', 'merlin-wp'));
       $import_data['after_import'] = true;
     }
 
+    $import_data = apply_filters('merlin_import_data_info', $import_data);
+
     return $import_data;
   }
 
@@ -2168,9 +2170,6 @@ $this->logger->debug(__('The final step has been displayed', 'merlin-wp'));
       'sliders' => '',
     );
 
-    // Hook add new Import object
-    $import_files = apply_filters('merlin_importer_object', $import_files, $selected_import_data);
-
     $downloader = new Merlin_Downloader();
 
     // Check if 'import_file_url' is not defined. That would mean a local file.
@@ -2307,6 +2306,9 @@ $this->logger->debug(__('The final step has been displayed', 'merlin-wp'));
       // Download the Redux import file.
       $import_files['redux'] = $redux_items;
     }
+    
+    // Hook add new Import object
+    $import_files = apply_filters('merlin_importer_code', $import_files, $selected_import_data, $downloader);
     
     return $import_files;
   }

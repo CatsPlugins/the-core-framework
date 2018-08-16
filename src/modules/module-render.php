@@ -135,12 +135,12 @@ final class ModuleRender {
   public static function showPage(string $pageId): void {
     // Get page configuration
     $pageConfig = ModuleConfig::Admin()->PAGES->$pageId;
-    
+
     // Enqueue assets files
     if (isset($pageConfig->assets)) {
       ModuleControl::enqueueAssetsFiles($pageConfig->assets);
     }
-    
+
     echo ModuleTemplate::generatePage($pageId);
   }
 }

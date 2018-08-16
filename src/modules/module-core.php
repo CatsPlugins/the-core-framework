@@ -14,6 +14,7 @@
 namespace CatsPlugins\TheCore;
 
 use Nette\Loaders\RobotLoader;
+use Nette\Utils\FileSystem;
 
 // Blocking access direct to the plugin
 defined('TCPF_WP_PATH_BASE') or die('No script kiddies please!');
@@ -30,6 +31,7 @@ defined('TCPF_WP_PATH_BASE') or die('No script kiddies please!');
  * @link     https://catsplugins.com
  */
 final class ModuleCore {
+  public static $assetsUrl;
   public static $textDomain;
   public static $pluginPath;
   public static $pluginData;
@@ -40,8 +42,7 @@ final class ModuleCore {
   public static $configPath;
   public static $modulesPath;
   public static $languagePath;
-
-  public static $assetsUrl;
+  public static $componentsPath;
 
   /**
    * Initialization Module
@@ -55,20 +56,42 @@ final class ModuleCore {
     if (!function_exists('get_plugin_data')) {
       include_once ABSPATH . 'wp-admin/includes/plugin.php';
     }
-    
+
     self::$pluginPath = realpath(plugin_dir_path($config['plugin_path'])) . DS;
+    //bdump(self::$pluginPath, 'Plugin Path');
+
     self::$pluginData = get_plugin_data($config['plugin_path'], false, false);
+    //bdump(self::$pluginData, 'Plugin Data');
 
     self::$textDomain = self::$pluginData['TextDomain'];
 
-    self::$logPath      = self::$pluginPath . 'log' . DS;
-    self::$cachePath    = self::$pluginPath . 'cache' . DS;
-    self::$assetsPath   = self::$pluginPath . 'assets' . DS;
-    self::$configPath   = self::$pluginPath . 'config' . DS;
-    self::$modulesPath  = self::$pluginPath . 'modules' . DS;
-    self::$languagePath = self::$pluginPath . 'languages' . DS;
+    self::$assetsUrl = plugin_dir_url($config['plugin_path']) . 'assets';
+    //bdump(self::$assetsUrl, 'Plugin Assets');
 
-    self::$assetsUrl = plugin_dir_url(self::$pluginPath) . 'assets';
+    self::$logPath        = self::$pluginPath . 'log' . DS;
+    self::$cachePath      = self::$pluginPath . 'cache' . DS;
+    self::$assetsPath     = self::$pluginPath . 'assets' . DS;
+    self::$configPath     = self::$pluginPath . 'configs' . DS;
+    self::$modulesPath    = self::$pluginPath . 'modules' . DS;
+    self::$languagePath   = self::$pluginPath . 'languages' . DS;
+    self::$componentsPath = self::$pluginPath . 'components' . DS;
+
+    // Check log path
+    if (!realpath(self::$logPath)) {
+      FileSystem::createDir(self::$logPath, 0755);
+    }
+
+    // Check cache path
+    if (!realpath(self::$cachePath)) {
+      FileSystem::createDir(self::$cachePath, 0755);
+    }
+
+    // Check components path
+    if (!realpath(self::$componentsPath)) {
+      FileSystem::createDir(self::$componentsPath, 0755);
+      FileSystem::createDir(self::$componentsPath . 'pages', 0755);
+      FileSystem::createDir(self::$componentsPath . 'elements', 0755);
+    }
 
     self::loadModules($config['refresh_modules']);
   }

@@ -96,20 +96,31 @@ final class ModuleTemplate {
   public static function generatePage(string $pageId): string {
     $oHTML = '';
 
+    // Get page configuration
+    $pageConfig = ModuleConfig::Admin()->PAGES->$pageId ?? new stdClass;
+
+    // Set page path
+    $pagePath = $pageConfig->path ?? ModuleCore::$componentsPath;
+
     // Get file path of template
-    $templateFile = realpath(TCPF_WP_PATH_TEMPLATES_COMPONENTS['page'] . $pageId . '.latte');
+    $templateFile = $pagePath . 'pages' . DS . $pageId . '.latte';
+
+    // Try check page file of default path
+    if (file_exists($templateFile) === false) {
+      $templateFile = TCPF_WP_PATH_TEMPLATES_COMPONENTS['page'] . $pageId . '.latte';
+    }
 
     // Show error if file not exist
-    if ($templateFile === false) {
+    if (file_exists($templateFile) === false) {
       return '<h2 class="center-align">' . ModuleHelper::trans('The template page does not exist!') . '</h2>';
     }
 
-    // Get page configuration
-    $pageConfig = ModuleConfig::Admin()->PAGES->$pageId;
-
-    // Add more data
+    // Add more page data
     $pageConfig->page_id    = $pageId;
     $pageConfig->textdomain = ModuleCore::$textDomain;
+
+    // Add filter for more page data
+    $pageConfig = ModuleEvent::filter('_page_data_' . $pageId, $pageConfig);
 
     // Remove data not used
     unset($pageConfig->assets, $pageConfig->sections);

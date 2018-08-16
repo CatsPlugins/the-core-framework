@@ -16,9 +16,12 @@ namespace CatsPlugins\TheCore;
 use GuzzleHttp\Client;
 use Nette\InvalidArgumentException;
 use Nette\Utils\Callback;
+use Nette\Utils\Html;
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
 use Nette\Utils\Strings;
+use \DOMDocument;
+use \DOMElement;
 use \stdClass;
 
 // Blocking access direct to the plugin
@@ -198,6 +201,45 @@ final class ModuleHelper {
       $output = ['error' => $e->getMessage()];
     }
     return (object) $output;
+  }
+
+  /**
+   * Convert html to array
+   *
+   * @param string $html Html content
+   *
+   * @return Html
+   */
+  public static function htmlToArray(string $html): array{
+    if (empty($html)) {
+      return ['error' => _t('Content is empty.')];
+    }
+
+    $dom = new DOMDocument();
+    $dom->loadHTML($html);
+    return self::elementsToArray($dom->documentElement);
+  }
+
+  /**
+   * Convert elements to array
+   *
+   * @param DOMElement $elements Element object
+   *
+   * @return array
+   */
+  public static function elementsToArray(DOMElement $elements): array{
+    $array = ['tag' => $elements->tagName];
+    foreach ($elements->attributes as $attribute) {
+      $array[$attribute->name] = $attribute->value;
+    }
+    foreach ($elements->childNodes as $subElement) {
+      if ($subElement->nodeType == XML_TEXT_NODE) {
+        $array['html'] = $subElement->wholeText;
+      } else {
+        $array['children'][] = self::elementsToArray($subElement);
+      }
+    }
+    return $array;
   }
 
   /**
@@ -405,15 +447,15 @@ final class ModuleHelper {
   /**
    * Recursive searches the array for a given value and returns the first corresponding key if successful
    *
-   * @param array   $arrayData  Array data
+   * @param array   $data  Array data
    * @param mixed   $search     Search value
    * @param boolean $onlyParent Only return parent
    * @param mixed   $keyParent  Current key parent
    *
    * @return int
    */
-  public static function arraySearchRecursive(array $arrayData, $search, bool $onlyParent = null, $keyParent = null): int {
-    foreach ($arrayData as $key => $value) {
+  public static function arraySearchRecursive(array $data, $search, bool $onlyParent = null, $keyParent = null): int {
+    foreach ($data as $key => $value) {
       if (is_array($value)) {
         $keyPass = is_string($key) ? $key : $keyParent;
 
@@ -433,44 +475,44 @@ final class ModuleHelper {
   /**
    * Filters recursive elements of an array using a callback function
    *
-   * @param array    $arrayData   Array data
+   * @param array    $data   Array data
    * @param callable $callback    Callback function
    * @param boolean  $removeEmpty Remove array if empty value
    *
    * @return array
    */
-  public static function arrayFilterRecursive(array $arrayData, callable $callback, bool $removeEmpty = null): array{
-    if (empty($arrayData)) {
-      return $arrayData;
+  public static function arrayFilterRecursive(array $data, callable $callback, bool $removeEmpty = null): array{
+    if (empty($data)) {
+      return $data;
     }
 
-    foreach ($arrayData as $key => &$value) {
+    foreach ($data as $key => &$value) {
       // mind the reference
       if (is_array($value)) {
         $value = self::arrayFilterRecursive($value, $callback, $removeEmpty);
         if ($removeEmpty && !(bool) $value) {
-          unset($arrayData[$key]);
+          unset($data[$key]);
         }
         continue;
       }
 
       if (Callback::check($callback) && !$callback($value, $key)) {
-        unset($arrayData[$key]);
+        unset($data[$key]);
       } elseif (!(bool) $value) {
-        unset($arrayData[$key]);
+        unset($data[$key]);
       }
 
     }
     unset($value);
-    return $arrayData;
+    return $data;
   }
 
   /**
    * Search and replaces recursive elements by array key or array value
    *
-   * @param array   $arrayData         Array data
-   * @param mixed   $search            Search value
-   * @param mixed   $replace           Substitute content
+   * @param array   $data              Array data
+   * @param any     $search            Search value
+   * @param any     $replace           Substitute content
    * @param string  $typeSearch        Type of search value
    * @param string  $typeReplace       Replace by Key or Value
    * @param boolean $findAndReplace    Find value and replace or replace value
@@ -479,46 +521,49 @@ final class ModuleHelper {
    *
    * @return array
    */
-  public static function arrayReplaceRecursive(array $arrayData, $search, $replace, string $typeSearch = 'value', string $typeReplace = 'value', bool $findAndReplace = null, bool $removeEmpty = null, bool $forceReplaceArray = null): array{
-    if (!is_array($arrayData)) {
-      return $arrayData;
+  public static function arrayReplaceRecursive(array $data, $search, $replace, string $typeSearch = 'value', string $typeReplace = 'value', bool $findAndReplace = null, bool $removeEmpty = null, bool $forceReplaceArray = null): array{
+    if (!is_array($data)) {
+      return $data;
     }
 
-    $funcRemoveEmpty = function ($arrayKey, bool $condition) use ($removeEmpty, &$arrayData) {
+    $funcRemoveEmpty = function ($key, bool $condition) use ($removeEmpty, &$data) {
       if ($condition && $removeEmpty) {
-        unset($arrayData[$arrayKey]);
+        unset($data[$key]);
       }
     };
 
-    foreach ($arrayData as $arrayKey => $arrayValue) {
+    foreach ($data as $key => $value) {
       // Replace with array
-      if (is_array($arrayData[$arrayKey]) && $forceReplaceArray === false) {
-        $arrayData[$arrayKey] = self::arrayReplaceRecursive($arrayData[$arrayKey], $search, $replace, $typeSearch, $typeReplace, $findAndReplace, $removeEmpty);
+      if (is_array($data[$key]) && $forceReplaceArray !== true) {
+        $data[$key] = self::arrayReplaceRecursive($data[$key], $search, $replace, $typeSearch, $typeReplace, $findAndReplace, $removeEmpty);
         continue;
       }
 
+      // Make sure the value is string
+      $value = (string) $value;
+
       // Search by Key
-      if ($typeSearch === 'key' && stripos($arrayKey, $search) !== false) {
-        $arrayData[$arrayKey] = self::replaceValueArray($arrayData, $arrayKey, $search, $replace, $typeReplace, $findAndReplace);
+      if ($typeSearch === 'key' && stripos($key, $search) !== false) {
+        $data[$key] = self::replaceValueArray($data, $key, $search, $replace, $typeReplace, $findAndReplace);
       }
 
       // Search by Value
-      elseif ($typeSearch === 'value' && stripos($arrayValue, $search) !== false) {
-        $arrayData[$arrayKey] = self::replaceValueArray($arrayData, $arrayKey, $search, $replace, $typeReplace, $findAndReplace);
+      elseif ($typeSearch === 'value' && stripos($value, $search) !== false) {
+        $data[$key] = self::replaceValueArray($data, $key, $search, $replace, $typeReplace, $findAndReplace);
       }
 
       // Remove field if value is empty or search === replace
-      $funcRemoveEmpty($arrayKey, $typeSearch === 'key' || $search === $replace);
+      $funcRemoveEmpty($key, $typeSearch === 'key' || $search === $replace);
     }
 
-    return $arrayData;
+    return $data;
   }
 
   /**
    * Replace value array by key or value
    *
-   * @param array   $arrayData      Array data
-   * @param string  $arrayKey       Array key value
+   * @param array   $data           Array data
+   * @param string  $key            Array key value
    * @param mixed   $search         Search value
    * @param mixed   $replace        Substitute content
    * @param string  $typeReplace    Replace by Key or Value
@@ -526,29 +571,29 @@ final class ModuleHelper {
    *
    * @return array
    */
-  public static function replaceValueArray(array $arrayData, string $arrayKey, $search, $replace, string $typeReplace, bool $findAndReplace): array{
-    $value = $arrayData[$arrayKey];
+  public static function replaceValueArray(array $data, string $key, $search, $replace, string $typeReplace, bool $findAndReplace): string{
+    $value = $data[$key];
 
-    // $arrayKey == $search
+    // $key == $search
     if ($typeReplace === 'key') {
-      unset($arrayData[$arrayKey]);
+      unset($data[$key]);
       if ($findAndReplace == true && !is_array($replace)) {
-        $arrayData[$search] = str_replace($search, $replace, $value);
-        return $arrayData[$arrayKey];
+        $data[$search] = str_replace($search, $replace, $value);
+        return $data[$key];
       }
-      $arrayData[$search] = $replace;
+      $data[$search] = $replace;
     }
 
     // $value == $search
     if ($typeReplace === 'value') {
       if ($findAndReplace == true && !is_array($replace)) {
-        $arrayData[$arrayKey] = str_replace($search, $replace, $value);
-        return $arrayData[$arrayKey];
+        $data[$key] = str_replace($search, $replace, $value);
+        return $data[$key];
       }
-      $arrayData[$arrayKey] = $replace;
+      $data[$key] = $replace;
     }
 
-    return $arrayData[$arrayKey];
+    return $data[$key];
   }
 
   /**

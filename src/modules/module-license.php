@@ -31,6 +31,9 @@ use Nette\Utils\Strings;
  * @link     https://catsplugins.com
  */
 final class ModuleLicense {
+  private static $merlinConfigs;
+  private static $merlinStrings;
+
   /**
    * Setup MerlinWP
    *
@@ -43,9 +46,9 @@ final class ModuleLicense {
     $defaultConfigs = [
       'directory'            => 'merlin', // Location / directory where Merlin WP is placed in your theme.
       'merlin_url'           => 'merlin', // The wp-admin page slug where Merlin WP loads.
-      'child_action_btn_url' => 'https://codex.wordpress.org/child_themes', // URL for the 'child-action-link'.
-      'dev_mode'             => true, // Enable development mode for testing.
-      'license_step'         => false, // EDD license activation step.
+      'child_action_btn_url' => '', // URL for the 'child-action-link'.
+      'dev_mode'             => false, // Enable development mode for testing.
+      'license_step'         => true, // EDD license activation step.
       'license_required'     => false, // Require the license activation step.
       'license_help_url'     => '', // URL for the 'license-tooltip'.
       'edd_remote_api_url'   => '', // EDD_Theme_Updater_Admin remote_api_url.
@@ -113,13 +116,13 @@ final class ModuleLicense {
     list($configs, $strings) = self::setupBeforeEnvironmentForMerlinWp($configs, $strings);
 
     // Load default setting
-    $configs = array_merge($defaultConfigs, $configs ?? []);
-    $strings = array_merge($defaultStrings, $strings ?? []);
+    self::$merlinConfigs = array_merge($defaultConfigs, $configs ?? []);
+    self::$merlinStrings = array_merge($defaultStrings, $strings ?? []);
 
-    bdump([$configs, $strings], 'MerlinWP');
+    //bdump([$configs, $strings], 'MerlinWP');
 
     // Init MerlinWP
-    $oMerlin = new Merlin($configs, $strings);
+    $oMerlin = new Merlin(self::$merlinConfigs, self::$merlinStrings);
 
     // Setup environment after MerlinWP init
     $oMerlin = self::setupAfterEnvironmentForMerlinWp($oMerlin);
@@ -161,6 +164,20 @@ final class ModuleLicense {
   }
 
   /**
+   * Check Merlin has setup completed or not
+   *
+   * @return boolean
+   */
+  public static function isAlreadySetup(): bool {
+    if (self::$merlinConfigs['dev_mode'] === true) {
+      return false;
+    }
+
+    $slug = strtolower(preg_replace('#[^a-zA-Z]#', '', ModuleCore::$pluginData['TextDomain']));
+    return boolval(get_option('merlin_' . $slug . '_completed', false));
+  }
+
+  /**
    * Setup environment before MerlinWP init
    *
    * @param array $configs The Merlin configs
@@ -176,7 +193,6 @@ final class ModuleLicense {
     ModuleEvent::on('parent_theme_file_path', [self::class, 'changeParentThemeFilePath'], 99, 2);
 
     // MerlinWP use get_parent_theme_file_uri to get current url, but for theme, change it for plugin
-    //ModuleEvent::on('template_directory_uri', [self::class, 'changeTemplateDirectoryUri'], 99, 3);
     ModuleEvent::on('parent_theme_file_uri', [self::class, 'changeThemeFileUri'], 99, 2);
 
     // Change the configs names that match the plugin
@@ -218,16 +234,6 @@ final class ModuleLicense {
     if (Strings::startsWith($file, 'merlin') === true) {
       $path = realpath(TCPF_WP_PATH_INCLUDES . $file);
       //bdump([$path, $file], 'changeParentThemeFilePath');
-    }
-
-    return $path;
-  }
-
-  public static function changeTemplateDirectoryUri(string $templateDir, string $template, string $themeRoot) {
-    bdump([$templateDir, $template, $themeRoot], 'changeTemplateDirectoryUri');
-    if (Strings::contains($file, 'merlin') === true) {
-      $path = ModuleCore::$pluginPath;
-      bdump([$path, $file], 'changeParentThemeFilePath');
     }
 
     return $path;

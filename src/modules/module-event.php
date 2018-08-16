@@ -52,7 +52,7 @@ final class ModuleEvent {
         try {
           return Callback::invokeArgs($function, $parameters);
         } catch (InvalidArgumentException $e) {
-          bdump($e, 'Add callback with parameters : ' . $function);
+          bdump($e, 'Error callback with parameters');
         }
       };
     }

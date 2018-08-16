@@ -13,8 +13,14 @@
 
 namespace CatsPlugins\TheCore;
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Psr7;
 use Nette\InvalidArgumentException;
 use Nette\Utils\Callback;
+use Nette\Utils\Json;
+use Nette\Utils\JsonException;
+use Nette\Utils\Validators;
 
 // Blocking access direct to the plugin
 defined('TCPF_WP_PATH_BASE') or die('No script kiddies please!');
@@ -41,6 +47,158 @@ final class ModuleRequest {
    */
   public static function __callStatic(string $method, array $arguments) {
     return ModuleHelper::autoTriggerEventMethod(self::class, $method, $arguments);
+  }
+
+  /**
+   * Send request to a endpoint in endpoint.neon
+   *
+   * @param string $endpoint Endpoint ID
+   * @param array  $input    Data of request (post, get, put,..)
+   *
+   * @return array
+   */
+  public static function request(string $endpoint, array $input): array{
+    $result            = [];
+    $result['success'] = false;
+
+    // Setup endpoint config
+    $requestConfig = self::setupEndpointConfig($endpoint, $input);
+
+    // Check for errors
+    if (!empty($requestConfig['message'])) {
+      return $requestConfig;
+    }
+
+    $uri     = $requestConfig['uri'] ?? '';
+    $method  = $requestConfig['method'] ?? false;
+    $options = $requestConfig['option'] ?? false;
+
+    if ($method === false || $options === false) {
+      $result['message'] = _t('Invalid endpoint config.');
+      return $result;
+    }
+
+    $oClient = new Client($options);
+
+    // Send request
+    try {
+      $oResponse = $oClient->request($method, $uri);
+    } catch (RequestException $e) {
+      $oResponse = Psr7\str($e->getRequest());
+      if ($e->hasResponse()) {
+        $oResponse = Psr7\str($e->getResponse());
+      }
+    }
+
+    // Processed data received
+    if (is_object($oResponse)) {
+      $body = (string) $oResponse->getBody();
+
+      if (empty($body)) {
+        $result['message'] = 'No result';
+        return $result;
+      }
+    } elseif (is_string($oResponse)) {
+      // This may be an error
+      list($header, $body) = explode("\r\n\r\n", $oResponse, 2);
+
+      // Try convert unknown content to json
+      try {
+        Json::decode($body, Json::FORCE_ARRAY);
+      } catch (JsonException $e) {
+        $result['message'] = $e->getMessage();
+        $result['debug']   = [
+          'header'         => explode("\n", $header),
+          'body'           => ModuleHelper::htmlToArray($body),
+          'raw_data'       => $oResponse,
+          'request_config' => $requestConfig,
+        ];
+        return $result;
+      }
+    }
+
+    // Try get content json
+    try {
+      $result = Json::decode($body, Json::FORCE_ARRAY);
+    } catch (JsonException $e) {
+      $result['message'] = $e->getMessage();
+      $result['data']    = $body;
+      return $result;
+    }
+
+    // Check result format
+    $finalResult = [];
+    $isSuccess   = isset($result['success']) ? true : false;
+
+    if ($isSuccess === true && (isset($result['message']) || isset($result['data']))) {
+      $finalResult = $result;
+    } elseif ($isSuccess === true) {
+      $finalResult['success'] = $result['success'];
+      unset($result['success']);
+      $finalResult['data'] = $result;
+    } else {
+      $finalResult['success'] = true;
+      $finalResult['data']    = $result;
+    }
+
+    return $finalResult;
+  }
+
+  /**
+   * Setup endpoint config
+   *
+   * @param string $endpoint Endpoint ID
+   * @param array  $input    Data of request (post, get, put,..)
+   *
+   * @return array
+   */
+  public static function setupEndpointConfig(string $endpoint, array $input): array{
+    $requestConfig            = [];
+    $requestConfig['success'] = false;
+
+    // Get endpoint config
+    $endpointConfig = ModuleConfig::Endpoint()->$endpoint ?? false;
+
+    if ($endpointConfig === false) {
+      $requestConfig['message'] = _t('The endpoint config does not exist.');
+      return $requestConfig;
+    }
+
+    if ($endpointConfig->enable === false) {
+      $requestConfig['message'] = _t('The endpoint are disabled.');
+      return $requestConfig;
+    }
+
+    // Convert endpointConfig to array for arrayReplaceRecursive
+    $endpointConfig = ModuleHelper::objectToArray($endpointConfig);
+
+    if (isset($endpointConfig['error'])) {
+      $requestConfig['message'] = _t('The endpoint are invalid.');
+      return $requestConfig;
+    }
+
+    // Find and replace input value define by %@[name]%
+    $prefix = '%@';
+    foreach ($input as $name => $value) {
+      $value          = Validators::isNumeric($value) ? floatval($value) : $value;
+      $search         = $prefix . $name . '%';
+      $endpointConfig = ModuleHelper::arrayReplaceRecursive($endpointConfig, $search, $value, 'value', 'value', true, false);
+    }
+
+    // Find prefix and remove if empty input
+    $requestConfig = ModuleHelper::arrayReplaceRecursive($endpointConfig, $prefix, '', 'value', 'value', false, true);
+
+    $defaultConfig = [
+      'timeout'         => 15,
+      'allow_redirects' => false,
+      'debug'           => false,
+      'verify'          => TCPF_WP_PATH_INCLUDES . 'cacert.pem',
+    ];
+
+    // Merge default config option
+    $requestConfig['option'] = array_merge($defaultConfig, $requestConfig['option']);
+
+    return $requestConfig;
   }
 
   /**
@@ -96,7 +254,7 @@ final class ModuleRequest {
    * Get the current hash key for each action
    *
    * @param string $action Action ajax
-   * 
+   *
    * @return void
    */
   public static function getHash(string $action) {

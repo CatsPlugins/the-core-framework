@@ -174,7 +174,7 @@ final class ModuleConfig {
    *
    * @return array
    */
-  private static function findVariablesConfig(string $contents): array{
+  public static function findVariablesConfig(string $contents): array{
     $variables = Strings::matchAll($contents, '/\%[A-Z_ :->\\\$]+\%/im');
 
     if (is_null($variables)) {

@@ -12,7 +12,7 @@
     "nette/utils": "^2.5",
     "nette/caching": "^2.5",
     "nette/robot-loader": "^3.0",
-    "guzzlehttp/guzzle": "^5.3"
+    "guzzlehttp/guzzle": "^6.0"
   },
   "require-dev": {
 
@@ -31,6 +31,5 @@
     "files": [
       "src/the-core-framework.php"
     ]
-  },
-  "minimum-stability": "dev"
+  }
 }
