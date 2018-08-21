@@ -420,7 +420,7 @@ class Merlin {
     );
 
     // Localize the javascript.
-    if (class_exists('TGM_Plugin_Activation')) {
+    if (class_exists('TGM_Plugin_Activation') && method_exists($this->tgmpa, 'get_tgmpa_url')) {
       // Check first if TMGPA is included.
       wp_localize_script(
         'merlin', 'merlin_params', array(

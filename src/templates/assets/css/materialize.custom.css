@@ -87,10 +87,16 @@ tr {
 }
 
 .tabs .tab a {
-  color: #005d8a
+  color: #fff;
+  background-color: #005d8a;
 }
 
-.tabs .tab a:hover,
+.tabs .tab a:hover {
+  background-color: #004465;
+  color: #fff;
+  border-radius: 5px 5px 0 0
+}
+
 .tabs .tab a.active {
   color: #212121;
   background-color: #fff;
@@ -99,19 +105,22 @@ tr {
 
 .tabs .tab a:focus,
 .tabs .tab a:focus.active {
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: #fff;
   outline: none;
-}
-
-.tabs .tab a:not(.active) {
-  color: #fff;
-  background-color: #005d8a;
 }
 
 .tabs .indicator {
   background-color: #005d8a;
   bottom: -6px;
   display: none
+}
+
+.tabs .tab a:not(.active) .material-icons:hover {
+  color: #fff
+}
+
+.tabs .tab a.active .material-icons:hover {
+  color: #23282d
 }
 
 .switch {

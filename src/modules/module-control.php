@@ -34,15 +34,6 @@ final class ModuleControl {
   private static $assetsConfig;
 
   /**
-   * Initialization language
-   *
-   * @return void
-   */
-  public static function initLanguage(): void {
-    load_plugin_textdomain(ModuleCore::$textDomain, false, ModuleCore::$languagePath);
-  }
-
-  /**
    * Get assets hash
    *
    * @param string $file Full URL or path script/style file relative to the plugin assets directory

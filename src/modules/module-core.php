@@ -41,6 +41,7 @@ final class ModuleCore {
   public static $assetsPath;
   public static $configPath;
   public static $modulesPath;
+  public static $includesPath;
   public static $languagePath;
   public static $componentsPath;
 
@@ -73,6 +74,7 @@ final class ModuleCore {
     self::$assetsPath     = self::$pluginPath . 'assets' . DS;
     self::$configPath     = self::$pluginPath . 'configs' . DS;
     self::$modulesPath    = self::$pluginPath . 'modules' . DS;
+    self::$includesPath   = self::$pluginPath . 'includes' . DS;
     self::$languagePath   = self::$pluginPath . 'languages' . DS;
     self::$componentsPath = self::$pluginPath . 'components' . DS;
 

@@ -203,7 +203,7 @@ final class ModuleConfig {
     $optionKey   = $arguments[0] ?? null;
     $optionValue = $arguments[1] ?? null;
 
-    // Special mode for WP Option
+    // Special mode for set WP Option
     if ($name === 'option' && $optionKey !== null && $optionKey !== 'raw') {
 
       // Data update mode

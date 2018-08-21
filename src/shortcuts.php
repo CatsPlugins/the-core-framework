@@ -24,6 +24,6 @@ if (!function_exists('_t')) {
    * @return string
    */
   function _t($text): string {
-    return call_user_func_array('CatsPlugins\TheCore\ModuleHelper::trans', func_get_args());
+    return call_user_func_array('CatsPlugins\TheCore\ModuleLanguage::trans', func_get_args());
   }
 }

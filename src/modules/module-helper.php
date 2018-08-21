@@ -85,17 +85,6 @@ final class ModuleHelper {
   }
 
   /**
-   * Translate text with textdomain
-   *
-   * @param mixed $text Text to translate
-   *
-   * @return string
-   */
-  public static function trans($text): string {
-    return __($text, ModuleCore::$textDomain);
-  }
-
-  /**
    * Whether current user has a specific capability
    *
    * @param string $capability Wordpress capability
