@@ -76,6 +76,8 @@ final class ModuleConfig {
     foreach ($findFiles as $file) {
       $configFiles[$file->getBasename('.neon')] = $file->getPathname();
     }
+    
+    //bdump($configFiles, 'makeConfigFiles');
     return $configFiles;
   }
 
@@ -121,7 +123,8 @@ final class ModuleConfig {
       $config = Neon::decode($fileContent);
     } catch (Exception $e) {
       // ! remove $e when release;
-      $config = [$e];
+      $config = [];
+      bdump($e, 'getConfigValue');
     }
 
     //bdump($config, 'getConfigValue: ' . $name);
