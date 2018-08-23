@@ -76,7 +76,7 @@ final class ModuleConfig {
     foreach ($findFiles as $file) {
       $configFiles[$file->getBasename('.neon')] = $file->getPathname();
     }
-    
+
     //bdump($configFiles, 'makeConfigFiles');
     return $configFiles;
   }
@@ -171,6 +171,33 @@ final class ModuleConfig {
   }
 
   /**
+   * Returns the value from filter with the variable neon: %@[name]%
+   *
+   * @param string $event    The event name of filter
+   * @param string $contents The Neon content file
+   * 
+   * @return string
+   */
+  public static function returnValueFilter(string $event, string $contents): string {
+    // Get data from a filter
+    $filterData = ModuleEvent::filter($event);
+
+    if (empty($filterData)) {
+      return $contents;
+    }
+
+    // Replace value define by %@[name]%
+    $prefix = '%@';
+    foreach ($filterData as $name => $value) {
+      $value    = Validators::isNumeric($value) ? floatval($value) : $value;
+      $search   = $prefix . $name . '%';
+      $contents = str_replace($search, $value, $contents);
+    }
+
+    return $contents;
+  }
+
+  /**
    * Find variables in content neon config
    *
    * @param string $contents The Neon content file
@@ -207,12 +234,8 @@ final class ModuleConfig {
     $optionValue = $arguments[1] ?? null;
 
     // Special mode for set WP Option
-    if ($name === 'option' && $optionKey !== null && $optionKey !== 'raw') {
-
-      // Data update mode
-      if ($optionValue !== null) {
-        return self::setOption($optionKey, $optionValue);
-      }
+    if ($name === 'option' && $optionKey !== null && $optionKey !== 'raw' && $optionValue !== null) {
+      return self::setOption($optionKey, $optionValue);      
     }
 
     // Only read configuration file in first time
@@ -269,17 +292,12 @@ final class ModuleConfig {
    * @return stdClass
    */
   private static function getOptions(bool $all = null): stdClass {
-    // Load all wp option
-    $wpOptions = wp_load_alloptions();
-
     if ($all !== true) {
       // Get default value options
-      $tcOptions = ModuleHelper::objectToArray(self::Option('default'));
-
-      // Load all option need/have managed
-      $optionsManaged = array_intersect_key($wpOptions, $tcOptions);
+      $optionsManaged = ModuleHelper::objectToArray(self::Option('default'));
     } else {
-      $optionsManaged = $wpOptions;
+      // Load all wp option
+      $optionsManaged = wp_load_alloptions();
     }
 
     // Formated all option managed if not correct
@@ -290,6 +308,7 @@ final class ModuleConfig {
       }
     );
 
+    //bdump($optionsManaged, 'getOptions');
     return ModuleHelper::arrayToObject($optionsManaged);
   }
 
@@ -363,14 +382,17 @@ final class ModuleConfig {
         break;
       case 'array':
         if ($mode === self::READ) {
-          if (is_string($mValue)) {
-            $value = Json::decode($value);
+          if (is_string($value)) {
+            try {
+              $value = Json::decode($value, Json::FORCE_ARRAY);
+            } catch (JsonException $e) {
+              $value = ['error' => $e->getMessage()];
+            }
           }
           $value = (is_array($value) || is_object($value)) ? $value : [$value];
-
         } elseif ($mode === self::WRITE) {
           $value = (is_array($value) || is_object($value)) ? $value : [$value];
-          $value = Json::encode($value, Json::FORCE_ARRAY);
+          $value = Json::encode($value);
         }
         break;
     }

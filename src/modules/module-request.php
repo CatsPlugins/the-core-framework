@@ -20,7 +20,6 @@ use Nette\InvalidArgumentException;
 use Nette\Utils\Callback;
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
-use Nette\Utils\Validators;
 
 // Blocking access direct to the plugin
 defined('TCPF_WP_PATH_BASE') or die('No script kiddies please!');
@@ -53,16 +52,15 @@ final class ModuleRequest {
    * Send request to a endpoint in endpoint.neon
    *
    * @param string $endpoint Endpoint ID
-   * @param array  $input    Data of request (post, get, put,..)
    *
    * @return array
    */
-  public static function request(string $endpoint, array $input): array{
+  public static function request(string $endpoint): array{
     $result            = [];
     $result['success'] = false;
 
     // Setup endpoint config
-    $requestConfig = self::setupEndpointConfig($endpoint, $input);
+    $requestConfig = self::setupEndpointConfig($endpoint);
 
     // Check for errors
     if (!empty($requestConfig['message'])) {
@@ -148,11 +146,10 @@ final class ModuleRequest {
    * Setup endpoint config
    *
    * @param string $endpoint Endpoint ID
-   * @param array  $input    Data of request (post, get, put,..)
    *
    * @return array
    */
-  public static function setupEndpointConfig(string $endpoint, array $input): array{
+  public static function setupEndpointConfig(string $endpoint): array{
     $requestConfig            = [];
     $requestConfig['success'] = false;
 
@@ -178,15 +175,16 @@ final class ModuleRequest {
     }
 
     // Find and replace input value define by %@[name]%
-    $prefix = '%@';
-    foreach ($input as $name => $value) {
-      $value          = Validators::isNumeric($value) ? floatval($value) : $value;
-      $search         = $prefix . $name . '%';
-      $endpointConfig = ModuleHelper::arrayReplaceRecursive($endpointConfig, $search, $value, 'value', 'value', true, false);
-    }
+    $sEndpointConfig = Json::encode($endpointConfig);
+    $sEndpointConfig = ModuleConfig::returnValueFilter($endpoint, $sEndpointConfig);
 
-    // Find prefix and remove if empty input
-    $requestConfig = ModuleHelper::arrayReplaceRecursive($endpointConfig, $prefix, '', 'value', 'value', false, true);
+    try {
+      $requestConfig = Json::decode($sEndpointConfig, Json::FORCE_ARRAY);
+    } catch (JsonException $e) {
+      $requestConfig['message'] = _t('The endpoint are invalid.');
+      $requestConfig['error']   = $e->getMessage();
+      return $requestConfig;
+    }
 
     $defaultConfig = [
       'timeout'         => 15,

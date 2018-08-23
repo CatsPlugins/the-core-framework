@@ -1,17 +1,12 @@
+
+{var $value = $attr['value']}
+{$attr['value'] = null}
 <select n:attr="$attr" n:inner-foreach="$option as $sValue => $mName">
   {if ('is_array'|func:$mName)}
   <optgroup label="{$sValue}" n:inner-foreach="$mName as $sChildValue => $sChildName">
-    {if ('is_array'|func:$attr['value'])}
-      <option value="{$sChildValue}" {('in_array'|func:$sChildValue,$attr['value']??[]) ? 'selected'}>{$sChildName}</option>
-    {else}
-      <option value="{$sChildValue}" {$sChildValue == $attr['value'] ? 'selected'}>{$sChildName}</option>
-    {/if}
+    <option value="{$sChildValue}" {($sChildValue|compare:$value) ? 'selected'}>{$mName}</option>
   </optgroup>
   {else}
-    {if ('is_array'|func:$attr['value'])}
-      <option value="{$sValue}" {('in_array'|func:$sValue,$attr['value']) ? 'selected'}>{$mName}</option>
-    {else}
-      <option value="{$sValue}" {$sValue == $attr['value'] ? 'selected'}>{$mName}</option>
-    {/if}
+    <option value="{$sValue}" {($sValue|compare:$value) ? 'selected'}>{$mName}</option>
   {/if}
 </select>

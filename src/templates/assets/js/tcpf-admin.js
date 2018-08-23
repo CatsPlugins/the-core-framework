@@ -38,7 +38,7 @@ readyDOM(() => {
           }
           return response;
         });
-      },      
+      },
       showModal: response => {
         let html = '';
         console.log('showModal', response);
@@ -348,27 +348,28 @@ readyDOM(() => {
           // Get all options
           var options = $(e.currentTarget).serializeArray();
 
-          let aOptionName = [];
+          let optionsName = [];
           $.map(options, el => {
             el.value = el.value.replace(/(\r\n\t|\n|\r\t)/gm, "").trim();
-            if ($.inArray(el.name, aOptionName) === -1) {
-              aOptionName.push(el.name);
+            if ($.inArray(el.name, optionsName) === -1) {
+              optionsName.push(el.name);
             }
           });
 
-          // Include checkbox not checked
+          // Include select not checked
           $('select:not(:checked)').each(function () {
-            if ($.inArray(this.name, aOptionName) === -1 && this.name !== '') {
-              aOptions.push({
+            if ($.inArray(this.name, optionsName) === -1 && this.name !== '') {
+              options.push({
                 name: this.name,
                 value: ''
               });
             }
           });
 
+          // Include checkbox not checked
           $('input[type="checkbox"]:not(:checked)').each(function () {
-            if ($.inArray(this.name, aOptionName) === -1 && this.name !== '') {
-              aOptions.push({
+            if ($.inArray(this.name, optionsName) === -1 && this.name !== '') {
+              options.push({
                 name: this.name,
                 value: '0'
               });
@@ -377,6 +378,19 @@ readyDOM(() => {
 
           // Filter value setting
           options = tcpfFunction.mergeObjectRecursive(options, 'name', 'value');
+
+          // Decode value NEON
+          $.map(options, el => {
+            if (typeof el.value === 'string') {
+              let decoded = neon.decode(el.value);
+              if(typeof decoded === 'object'){
+                el.value = decoded.toObject();
+              }
+            }
+            return el;
+          });
+          // console.log(options);
+          // return;
 
           if (options.length === 0) {
             let toastContent = $('<span>' + tcpfData.translated.noChanged + '</span>');

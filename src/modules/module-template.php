@@ -70,6 +70,9 @@ final class ModuleTemplate {
         }
       }
     );
+
+    // Auto compare value vs data
+    self::$engine->addFilter('compare', [ModuleHelper::class, 'autoCompare']);
   }
 
   /**
@@ -156,6 +159,11 @@ final class ModuleTemplate {
         continue;
       }
 
+      // Create default element attr
+      if (!isset($elementConfig->attr)) {
+        $elementConfig->attr = new stdClass;
+      }
+
       // If it is not named, it will have the value of the main element
       if (!isset($elementConfig->attr->name)) {
         $elementConfig->attr->name = $elementsConfig->name;
@@ -203,9 +211,11 @@ final class ModuleTemplate {
       $elementName  = $elementConfig->attr->name;
       $elementValue = ModuleConfig::Option()->$elementName;
     }
+    //bdump([ModuleConfig::Option(), $elementName, $elementValue], 'Add value for Element');
 
     // If there is an attr name it will have a value, but not overwritten
     if ($elementValue && !isset($elementConfig->attr->value)) {
+      $elementConfig->type        = ModuleConfig::Option('type')->$elementName;
       $elementConfig->attr->value = $elementValue;
     }
 

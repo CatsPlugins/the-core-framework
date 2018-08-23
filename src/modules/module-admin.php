@@ -341,13 +341,15 @@ final class ModuleAdmin {
       return;
     }
 
+    $optionStruct = ModuleConfig::Option('raw')->$optionId;
+
     // Add more data field for generate html
     $optionElements['echo']  = true;
     $optionElements['name']  = $optionId;
-    $optionElements['value'] = ModuleConfig::Option()->$optionId;
-
+    $optionElements['value'] = ModuleConfig::Option()->$optionId ?? $optionStruct->default;
+    
     // Call generateElementHTML to generate html by $optionElements;
-    //bdump([$optionId, $sectionConfig->title, [ModuleTemplate::class, 'generateElements'], $sectionConfig->tab, $sectionId, $optionElements], 'addSettingsField');
-    add_settings_field($optionId, $sectionConfig->field_title, [ModuleTemplate::class, 'generateElements'], $sectionConfig->tab, $sectionId, $optionElements);
+    //bdump([$optionId, $optionStruct->title, [ModuleTemplate::class, 'generateElements'], $sectionConfig->tab, $sectionId, $optionElements], 'addSettingsField');
+    add_settings_field($optionId, $optionStruct->title, [ModuleTemplate::class, 'generateElements'], $sectionConfig->tab, $sectionId, $optionElements);
   }
 }

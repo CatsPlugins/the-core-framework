@@ -19,6 +19,8 @@ use Nette\Utils\Callback;
 use Nette\Utils\Html;
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
+use Nette\Neon\Exception;
+use Nette\Neon\Neon;
 use Nette\Utils\Strings;
 use \DOMDocument;
 use \DOMElement;
@@ -312,6 +314,54 @@ final class ModuleHelper {
   }
 
   /**
+   * Auto compare data vs value
+   * 
+   * @param any $value The value to compare
+   * @param any $data  The data for compare
+   *
+   * @return boolean
+   */
+  public static function autoCompare($value, $data): bool {    
+    //bdump([$value, $data], 'autoCompare');
+
+    // Value equal Data
+    if ($value == $data) {
+      //bdump([$value, $data], 'autoCompare: Value equal Data');
+      return true;
+    }
+
+    // Value in Data ?
+    if (is_string($value) && is_string((string) $data)) {
+      if (stripos($value, (string) $data) !== false) {
+        //bdump([$value, $data], 'autoCompare: Value in Data');
+        return true;
+      };
+    }
+
+    // Value in array Data
+    if (is_array($data)) {
+      if (in_array($value, $data)) {
+        //bdump([$value, $data], 'autoCompare: Value in array Data');
+        return true;
+      }
+    }
+
+    // Value is array neon ?
+    try {
+      $decoded = Neon::decode($value);
+    } catch (Exception $e) {
+      $decoded = false;
+    }
+
+    if ($decoded !== false && $decoded !== $value && $decoded == $data) {
+      //bdump([$value, $data], 'autoCompare: Value equal array neon');
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Fix an unclear callback can be called
    *
    * @param mixed $callback An unclear callback
@@ -337,6 +387,10 @@ final class ModuleHelper {
       $callback = array_values(ModuleHelper::objectToArray($callback));
     }
 
+    if (!is_string($callback[0])) {
+      return false;
+    }
+
     // Get full class namespace
     $callable = self::getFullClassNameSpace($callback[0]);
     $args     = $callback[1];
@@ -358,7 +412,7 @@ final class ModuleHelper {
     try {
       Callback::check($callable);
     } catch (InvalidArgumentException $e) {
-      bdump($e, 'Callback Invalid');
+      //bdump($e, 'Callback Invalid');
       return false;
     }
 
@@ -419,24 +473,26 @@ final class ModuleHelper {
    * @return void
    */
   public static function lazyInvokeArgsRecursive(&$data): void {
-    if (is_array($data)) {
-      // Get callback function and parameter
-      $callable = array_slice($data, 0, 2);
-      $args     = array_slice($data, 2);
+    list($callable, $args) = self::fixCallback($data);
 
-      try {
-        Callback::invokeArgs($callable, $args);
-      } catch (InvalidArgumentException $e) {
-        bdump($e, 'lazyInvokeArgsRecursive');
-        array_walk($data, [self::class, 'lazyInvokeArgsRecursive']);
-      }
+    if (is_null($callable) || !is_array($args)) {
+      return;
+    }
+
+    //bdump([$callable, $args], 'lazyInvokeArgsRecursive');
+
+    try {
+      $data = Callback::invokeArgs($callable, $args);
+    } catch (InvalidArgumentException $e) {
+      //bdump($e, 'lazyInvokeArgsRecursive');
+      array_walk($data, [self::class, 'lazyInvokeArgsRecursive']);
     }
   }
 
   /**
    * Recursive searches the array for a given value and returns the first corresponding key if successful
    *
-   * @param array   $data  Array data
+   * @param array   $data       Array data
    * @param mixed   $search     Search value
    * @param boolean $onlyParent Only return parent
    * @param mixed   $keyParent  Current key parent
@@ -464,7 +520,7 @@ final class ModuleHelper {
   /**
    * Filters recursive elements of an array using a callback function
    *
-   * @param array    $data   Array data
+   * @param array    $data        Array data
    * @param callable $callback    Callback function
    * @param boolean  $removeEmpty Remove array if empty value
    *
@@ -560,7 +616,7 @@ final class ModuleHelper {
    *
    * @return array
    */
-  public static function replaceValueArray(array $data, string $key, $search, $replace, string $typeReplace, bool $findAndReplace): string{
+  public static function replaceValueArray(array $data, string $key, $search, $replace, string $typeReplace, bool $findAndReplace): string {
     $value = $data[$key];
 
     // $key == $search
