@@ -49,6 +49,35 @@ final class ModuleRequest {
   }
 
   /**
+   * Format result from endpoint
+   *
+   * @param array $result The endpoint,ajax,.. result
+   *
+   * @return array
+   */
+  public static function formatResult(array $result): array{
+    // Check result format
+    $finalResult = [];
+    $isSuccess   = isset($result['success']) ? true : false;
+
+    if ($isSuccess === false && isset($result['data'])) {
+      $finalResult            = $result;
+      $finalResult['success'] = boolval($result['data']);
+    } elseif ($isSuccess === true && (isset($result['message']) || isset($result['data']))) {
+      $finalResult = $result;
+    } elseif ($isSuccess === true) {
+      $finalResult['success'] = $result['success'];
+      unset($result['success']);
+      $finalResult['data'] = $result;
+    } else {
+      $finalResult['success'] = true;
+      $finalResult['data']    = $result;
+    }
+
+    return $finalResult;
+  }
+
+  /**
    * Send request to a endpoint in endpoint.neon
    *
    * @param string $endpoint Endpoint ID
@@ -74,6 +103,15 @@ final class ModuleRequest {
     if ($method === false || $options === false) {
       $result['message'] = _t('Invalid endpoint config.');
       return $result;
+    }
+
+    // Load cache
+    if ($requestConfig['cache'] === true) {
+      $cacheKey = ModuleCache::makeKey([endpoint, $requestConfig]);
+      $result   = ModuleCache::Endpoint($cacheKey);
+      if (!empty($result)) {
+        return $result;
+      }
     }
 
     $oClient = new Client($options);
@@ -124,22 +162,14 @@ final class ModuleRequest {
       return $result;
     }
 
-    // Check result format
-    $finalResult = [];
-    $isSuccess   = isset($result['success']) ? true : false;
+    // Format result
+    $result = self::formatResult($result);
 
-    if ($isSuccess === true && (isset($result['message']) || isset($result['data']))) {
-      $finalResult = $result;
-    } elseif ($isSuccess === true) {
-      $finalResult['success'] = $result['success'];
-      unset($result['success']);
-      $finalResult['data'] = $result;
-    } else {
-      $finalResult['success'] = true;
-      $finalResult['data']    = $result;
+    if ($requestConfig['cache'] === true && $result['success'] !== false) {
+      ModuleCache::Endpoint($cacheKey, $result);
     }
 
-    return $finalResult;
+    return $result;
   }
 
   /**
@@ -315,6 +345,9 @@ final class ModuleRequest {
       http_response_code(500);
       $result['message'] = _t($e->getMessage());
     }
+
+    // Format result
+    $result = self::formatResult($result);
 
     ModuleRender::sendJson($result);
   }

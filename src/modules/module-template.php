@@ -115,7 +115,7 @@ final class ModuleTemplate {
 
     // Show error if file not exist
     if (file_exists($templateFile) === false) {
-      return '<h2 class="center-align">' . ModuleHelper::trans('The template page does not exist!') . '</h2>';
+      return '<h2><center>' . _t('The template page does not exist!') . '</center></h2>';
     }
 
     // Add more page data
@@ -127,11 +127,13 @@ final class ModuleTemplate {
 
     // Remove data not used
     unset($pageConfig->assets, $pageConfig->sections);
-
+    
     // Argument 2 passed renderToString must be of the type array
     if (is_object($pageConfig)) {
       $pageConfig = ModuleHelper::objectToArray($pageConfig);
     }
+
+    //bdump($pageConfig, 'generatePage');
 
     $oHTML = self::renderToString($templateFile, $pageConfig);
 

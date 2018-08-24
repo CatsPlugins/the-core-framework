@@ -15,12 +15,12 @@ namespace CatsPlugins\TheCore;
 
 use GuzzleHttp\Client;
 use Nette\InvalidArgumentException;
+use Nette\Neon\Exception;
+use Nette\Neon\Neon;
 use Nette\Utils\Callback;
 use Nette\Utils\Html;
 use Nette\Utils\Json;
 use Nette\Utils\JsonException;
-use Nette\Neon\Exception;
-use Nette\Neon\Neon;
 use Nette\Utils\Strings;
 use \DOMDocument;
 use \DOMElement;
@@ -74,14 +74,25 @@ final class ModuleHelper {
       return;
     }
 
+    $callableString = Callback::toString([$class, $existMethod]);
+    //dump($callableString, '$callableString');exit;
+    
     // Do a action hook before method called
-    ModuleEvent::trigger('_before' . $method);
+    ModuleEvent::trigger('_before_' . $callableString);
 
     // Call method with parameters
     $result = Callback::invokeArgs([$class, $existMethod], $arguments);
 
+    // Add a filter for result
+    ModuleEvent::on(
+      '_result_' . $callableString,
+      function () use ($result) {
+        return $result;
+      }
+    );
+
     // Do a action hook after method called
-    ModuleEvent::trigger('_after' . $method);
+    ModuleEvent::trigger('_after_' . $callableString);
 
     return $result;
   }
@@ -315,13 +326,13 @@ final class ModuleHelper {
 
   /**
    * Auto compare data vs value
-   * 
+   *
    * @param any $value The value to compare
    * @param any $data  The data for compare
    *
    * @return boolean
    */
-  public static function autoCompare($value, $data): bool {    
+  public static function autoCompare($value, $data): bool {
     //bdump([$value, $data], 'autoCompare');
 
     // Value equal Data
@@ -502,11 +513,8 @@ final class ModuleHelper {
   public static function arraySearchRecursive(array $data, $search, bool $onlyParent = null, $keyParent = null): int {
     foreach ($data as $key => $value) {
       if (is_array($value)) {
-        $keyPass = is_string($key) ? $key : $keyParent;
-
-        $currentKey = self::arraySearchRecursive($value, $search, $onlyParent, $keyPass);
-
-        if ($currentKey !== false) {
+        $currentKey = self::arraySearchRecursive($value, $search, $onlyParent, $key);
+        if ($currentKey !== -1) {
           return $currentKey;
         }
       } elseif ($value === $search) {
@@ -647,7 +655,10 @@ final class ModuleHelper {
    * @return string
    */
   public static function getClientIp(): string {
-    if (getenv('HTTP_CLIENT_IP')) {
+    // Get CloudFlare visitor IP addresses: HTTP_CF_CONNECTING_IP
+    if (getenv('HTTP_CF_CONNECTING_IP')) {
+      return getenv('HTTP_CF_CONNECTING_IP');
+    } elseif (getenv('HTTP_CLIENT_IP')) {
       return getenv('HTTP_CLIENT_IP');
     } elseif (getenv('HTTP_X_FORWARDED_FOR')) {
       return getenv('HTTP_X_FORWARDED_FOR');

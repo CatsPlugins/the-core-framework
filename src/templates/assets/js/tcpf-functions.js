@@ -11,10 +11,17 @@ readyDOM(() => {
     console.log('tcpfData', tcpfData);
 
     tcpfFunction = {
+      executeFunctionByName: (functionName, context, args) => {
+        var namespaces = functionName.split(".");
+        var func = namespaces.pop();
+        for(var i = 0; i < namespaces.length; i++) {
+          context = context[namespaces[i]];
+        }
+        return context[func].apply(context, args);
+      },
       sendAjax: (e, args) => {
         console.log(args, 'arguments callback');
 
-        let options = args.data;
         var response = {};
 
         if (!args.action) {
@@ -24,17 +31,17 @@ readyDOM(() => {
 
         $.ajax({
           method: args.method,
-          url: args.url,
+          url: args.url ? args.url : tcpfData.ajax.url,
           dataType: 'json',
           data: {
             action: args.action,
-            hash: tcpfData.ajax.hash[args.action],
-            options: options
+            hash: args.hash,
+            data: args.data
           }
         }).always(data => {
           response = 'responseJSON' in data ? data.responseJSON : data;
-          if (typeof tcpfFunction[args.callback] === 'function') {
-            tcpfFunction[args.callback](response);
+          if(args.callback){            
+            tcpfFunction.executeFunctionByName(args.callback, window, [response]);
           }
           return response;
         });
@@ -175,11 +182,11 @@ readyDOM(() => {
             let funcName = aCallback[0];
             let args = aCallback[1];
 
-            if (typeof tcpfFunction[funcName] === 'function') {
+            if (funcName) {
               $(element).click(function (e) {
-                console.log('Onclick form tabs', funcName, args);
+                //console.log('Onclick form tabs', funcName, args);
                 e.preventDefault();
-                tcpfFunction[funcName](args);
+                tcpfFunction.executeFunctionByName(funcName, window, [e, args]);
               });
             }
           }
@@ -192,11 +199,11 @@ readyDOM(() => {
             $(element).removeData('onclick');
             let funcName = aCallback[0];
             let args = aCallback[1];
-            if (typeof tcpfFunction[funcName] === 'function') {
+            if (funcName) {
               $(element).click(function (e) {
                 //console.log('Onclick form content tab', funcName, args);
                 e.preventDefault();
-                tcpfFunction[funcName](e, args);
+                tcpfFunction.executeFunctionByName(funcName, window, [e, args]);
               });
             }
           }
@@ -208,10 +215,10 @@ readyDOM(() => {
             let funcName = aCallback[0];
             let args = aCallback[1];
 
-            if (typeof tcpfFunction[funcName] === 'function') {
+            if (funcName) {
               $(element).change(function (e) {
                 //console.log('Onchange form section', funcName, args);
-                tcpfFunction[funcName](e, args);
+                tcpfFunction.executeFunctionByName(funcName, window, [e, args]);
               });
             }
           }
@@ -223,9 +230,9 @@ readyDOM(() => {
             let funcName = aCallback[0];
             let args = aCallback[1];
 
-            if (typeof tcpfFunction[funcName] === 'function') {
+            if (funcName) {
               //console.log('Onload form section', funcName, args);
-              tcpfFunction[funcName](element, args);
+              tcpfFunction.executeFunctionByName(funcName, window, [element, args]);
             }
           }
         });
@@ -335,88 +342,8 @@ readyDOM(() => {
           //  Open the uploader dialog
           mediaUploader.open();
         });
-
-        //  Can add button get token from server by js instead of callback in settings_field //
-        tcpfFunction.initSubmit();
-      },
-      initSubmit: () => {
-        // Submit Ajax
-        $('#optionsForm').submit(e => {
-
-          e.preventDefault();
-
-          // Get all options
-          var options = $(e.currentTarget).serializeArray();
-
-          let optionsName = [];
-          $.map(options, el => {
-            el.value = el.value.replace(/(\r\n\t|\n|\r\t)/gm, "").trim();
-            if ($.inArray(el.name, optionsName) === -1) {
-              optionsName.push(el.name);
-            }
-          });
-
-          // Include select not checked
-          $('select:not(:checked)').each(function () {
-            if ($.inArray(this.name, optionsName) === -1 && this.name !== '') {
-              options.push({
-                name: this.name,
-                value: ''
-              });
-            }
-          });
-
-          // Include checkbox not checked
-          $('input[type="checkbox"]:not(:checked)').each(function () {
-            if ($.inArray(this.name, optionsName) === -1 && this.name !== '') {
-              options.push({
-                name: this.name,
-                value: '0'
-              });
-            }
-          });
-
-          // Filter value setting
-          options = tcpfFunction.mergeObjectRecursive(options, 'name', 'value');
-
-          // Decode value NEON
-          $.map(options, el => {
-            if (typeof el.value === 'string') {
-              let decoded = neon.decode(el.value);
-              if(typeof decoded === 'object'){
-                el.value = decoded.toObject();
-              }
-            }
-            return el;
-          });
-          // console.log(options);
-          // return;
-
-          if (options.length === 0) {
-            let toastContent = $('<span>' + tcpfData.translated.noChanged + '</span>');
-            M.toast({
-              html: toastContent
-            });
-            return;
-          }
-
-          let postData = {
-            'method': 'POST',
-            'url': tcpfData.ajax.url,
-            'action': 'save_options', // don't use camelCase, only use snake_case
-            'callback': 'showModal',
-            'data': options
-          };
-
-          tcpfFunction.sendAjax(e, postData);
-        });
       }
     };
-
-    // Init Component Element
-    setTimeout(function () {
-      tcpfFunction.initComponent();
-    }, 500);
   });
 }, false);
 

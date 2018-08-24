@@ -135,6 +135,7 @@ final class ModuleRender {
   public static function showPage(string $pageId): void {
     // Get page configuration
     $pageConfig = ModuleConfig::Admin()->PAGES->$pageId;
+    //bdump($pageConfig, 'showPage');
 
     // Enqueue assets files
     if (isset($pageConfig->assets)) {

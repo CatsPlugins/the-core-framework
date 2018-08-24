@@ -22,9 +22,12 @@ use Nette\Caching\Storages\MemoryStorage;
 use Nette\Caching\Storages\NewMemcachedStorage;
 use Nette\Caching\Storages\SQLiteStorage;
 use Nette\InvalidStateException;
+use Nette\MemberAccessException;
 use Nette\NotSupportedException;
 use Nette\Utils\Callback;
 use Nette\Utils\FileSystem;
+use Nette\Utils\Json;
+use Nette\Utils\JsonException;
 use \stdClass;
 
 /**
@@ -49,6 +52,7 @@ final class ModuleCache {
   public static function init(): void {
     $configs = ModuleConfig::Cache()->CACHE_STORAGE;
     if (empty($configs)) {
+      bdump('Config cache fail!');
       return;
     }
 
@@ -110,39 +114,47 @@ final class ModuleCache {
    * @return void
    */
   public static function __callStatic(string $storageName, array $arguments) {
-    bdump($arguments, $storageName);
+    //bdump($arguments, $storageName);
 
     $result   = null;
     $name     = strtolower($storageName);
     $storages = self::$storages->$name ?? null;
 
-    if ($storage === null) {
+    if ($storages === null) {
       return false;
     }
 
     $cacheKey    = $arguments[0] ?? null;
-    $cacheValue  = $arguments[1] ?? null;
+    $cacheValue  = $arguments[1] ?? [];
     $cacheOption = $arguments[2] ?? null;
     $cacheTime   = ModuleConfig::Cache()->CACHE_TIME;
 
+    if (is_null($cacheKey)) {
+      return false;
+    }
+
     foreach ($storages as $type => $storage) {
       // Set time cache form setting
-      if ($cacheKey === 'save' && !isset($cacheOption['expire'])) {
+      if (!isset($cacheOption['expire'])) {
         $cacheOption['expire']  = $cacheTime->$name;
         $cacheOption['sliding'] = false;
       }
 
       if (is_object($storage) && $cacheKey !== null) {
         // Save cache mode (default)
-        if ($cacheValue !== null) {
+        if (!empty($cacheValue)) {
           $result = $storage->save($cacheKey, $cacheValue);
         } else {
           try {
             // Call exist method cache
             $result = Callback::invokeArgs([$storage, $cacheKey], $cacheValue);
           } catch (InvalidArgumentException $e) {
-            bdump($e, 'Method not found: ' . $cacheKey);
-
+            $result = false;
+          } catch (MemberAccessException $e) {
+            $result = false;
+          }
+          
+          if ($result === false) {
             // Load multiple items from the cache.
             if (is_array($cacheKey)) {
               $result = $storage->bulkLoad($cacheKey);
@@ -152,10 +164,28 @@ final class ModuleCache {
           }
         }
 
-        bdump($result, $type);
+        //bdump($result, $type);
       }
     }
 
     return $result;
+  }
+
+  /**
+   * Make a hash key cache
+   *
+   * @param array ...$arguments Data to create a hash key
+   *
+   * @return string
+   */
+  public static function makeKey(...$arguments): string {
+    try {
+      $key = Json::encode($arguments);
+    } catch (JsonException $e) {
+      bdump($e->getMessage(), 'makeKey');
+      return '';
+    }
+
+    return md5($key);
   }
 }

@@ -24,6 +24,7 @@ use Nette\Utils\FileSystem;
 use Nette\Utils\Finder;
 use Nette\Utils\Json;
 use Nette\Utils\Strings;
+use Nette\Utils\Validators;
 use \stdClass;
 
 /**
@@ -175,7 +176,7 @@ final class ModuleConfig {
    *
    * @param string $event    The event name of filter
    * @param string $contents The Neon content file
-   * 
+   *
    * @return string
    */
   public static function returnValueFilter(string $event, string $contents): string {
@@ -235,7 +236,7 @@ final class ModuleConfig {
 
     // Special mode for set WP Option
     if ($name === 'option' && $optionKey !== null && $optionKey !== 'raw' && $optionValue !== null) {
-      return self::setOption($optionKey, $optionValue);      
+      return self::setOption($optionKey, $optionValue);
     }
 
     // Only read configuration file in first time
@@ -368,33 +369,33 @@ final class ModuleConfig {
    */
   private static function formatOptionValue($value, string $type, int $mode) {
     switch ($type) {
-      case 'string':
-        $value = strval($value);
-        break;
-      case 'integer':
-        $value = intval($value);
-        break;
-      case 'number':
-        $value = floatval($value);
-        break;
-      case 'boolean':
-        $value = boolval($value) ? 1 : 0;
-        break;
-      case 'array':
-        if ($mode === self::READ) {
-          if (is_string($value)) {
-            try {
-              $value = Json::decode($value, Json::FORCE_ARRAY);
-            } catch (JsonException $e) {
-              $value = ['error' => $e->getMessage()];
-            }
+    case 'string':
+      $value = strval($value);
+      break;
+    case 'integer':
+      $value = intval($value);
+      break;
+    case 'number':
+      $value = floatval($value);
+      break;
+    case 'boolean':
+      $value = boolval($value) ? 1 : 0;
+      break;
+    case 'array':
+      if ($mode === self::READ) {
+        if (is_string($value)) {
+          try {
+            $value = Json::decode($value, Json::FORCE_ARRAY);
+          } catch (JsonException $e) {
+            $value = ['error' => $e->getMessage()];
           }
-          $value = (is_array($value) || is_object($value)) ? $value : [$value];
-        } elseif ($mode === self::WRITE) {
-          $value = (is_array($value) || is_object($value)) ? $value : [$value];
-          $value = Json::encode($value);
         }
-        break;
+        $value = (is_array($value) || is_object($value)) ? $value : [$value];
+      } elseif ($mode === self::WRITE) {
+        $value = (is_array($value) || is_object($value)) ? $value : [$value];
+        $value = Json::encode($value);
+      }
+      break;
     }
 
     return $value;
