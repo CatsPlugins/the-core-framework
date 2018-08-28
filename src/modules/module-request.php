@@ -131,7 +131,8 @@ final class ModuleRequest {
       $body = (string) $oResponse->getBody();
 
       if (empty($body)) {
-        $result['message'] = 'No result';
+        $result['message']        = 'No result';
+        $result['request_config'] = $requestConfig;
         return $result;
       }
     } elseif (is_string($oResponse)) {

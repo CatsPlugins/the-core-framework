@@ -9,15 +9,30 @@ readyDOM(() => {
     }
 
     console.log('tcpfData', tcpfData);
-
+    var timeout;
+    
     tcpfFunction = {
-      executeFunctionByName: (functionName, context, args) => {
-        var namespaces = functionName.split(".");
-        var func = namespaces.pop();
-        for(var i = 0; i < namespaces.length; i++) {
+      executeFunctionByName: (functionName, context, ...args) => {
+        let namespaces = functionName.split(".");
+        let func = namespaces.pop();
+        for (let i = 0; i < namespaces.length; i++) {
           context = context[namespaces[i]];
         }
         return context[func].apply(context, args);
+      },
+      debounce: (func, wait, immediate = false) => {
+        let later = function () {
+          timeout = null;
+          if (!immediate) {
+            func.apply(this);
+          }
+        };
+        let callNow = immediate && !timeout;
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+        if (callNow) {
+          func.apply(this);
+        }
       },
       sendAjax: (e, args) => {
         console.log(args, 'arguments callback');
@@ -40,8 +55,8 @@ readyDOM(() => {
           }
         }).always(data => {
           response = 'responseJSON' in data ? data.responseJSON : data;
-          if(args.callback){            
-            tcpfFunction.executeFunctionByName(args.callback, window, [response]);
+          if (args.callback) {
+            tcpfFunction.executeFunctionByName(args.callback, window, response);
           }
           return response;
         });
@@ -186,7 +201,7 @@ readyDOM(() => {
               $(element).click(function (e) {
                 //console.log('Onclick form tabs', funcName, args);
                 e.preventDefault();
-                tcpfFunction.executeFunctionByName(funcName, window, [e, args]);
+                tcpfFunction.executeFunctionByName(funcName, window, e, args);
               });
             }
           }
@@ -203,7 +218,7 @@ readyDOM(() => {
               $(element).click(function (e) {
                 //console.log('Onclick form content tab', funcName, args);
                 e.preventDefault();
-                tcpfFunction.executeFunctionByName(funcName, window, [e, args]);
+                tcpfFunction.executeFunctionByName(funcName, window, e, args);
               });
             }
           }
@@ -218,7 +233,7 @@ readyDOM(() => {
             if (funcName) {
               $(element).change(function (e) {
                 //console.log('Onchange form section', funcName, args);
-                tcpfFunction.executeFunctionByName(funcName, window, [e, args]);
+                tcpfFunction.executeFunctionByName(funcName, window, e, args);
               });
             }
           }
@@ -232,7 +247,7 @@ readyDOM(() => {
 
             if (funcName) {
               //console.log('Onload form section', funcName, args);
-              tcpfFunction.executeFunctionByName(funcName, window, [element, args]);
+              tcpfFunction.executeFunctionByName(funcName, window, element, args);
             }
           }
         });
