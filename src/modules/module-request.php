@@ -70,8 +70,12 @@ final class ModuleRequest {
       unset($result['success']);
       $finalResult['data'] = $result;
     } else {
-      $finalResult['success'] = true;
+      if (isset($result['message'])) {
+        $finalResult['message'] = $result['message'];
+        unset($result['message']);
+      }
       $finalResult['data']    = $result;
+      $finalResult['success'] = boolval($result['data']);
     }
 
     return $finalResult;
@@ -189,11 +193,13 @@ final class ModuleRequest {
 
     if ($endpointConfig === false) {
       $requestConfig['message'] = _t('The endpoint config does not exist.');
+      $requestConfig['debug']   = $endpoint;
       return $requestConfig;
     }
 
     if ($endpointConfig->enable === false) {
       $requestConfig['message'] = _t('The endpoint are disabled.');
+      $requestConfig['debug']   = $endpoint;
       return $requestConfig;
     }
 
@@ -202,6 +208,7 @@ final class ModuleRequest {
 
     if (isset($endpointConfig['error'])) {
       $requestConfig['message'] = _t('The endpoint are invalid.');
+      $requestConfig['debug']   = $endpoint;
       return $requestConfig;
     }
 
