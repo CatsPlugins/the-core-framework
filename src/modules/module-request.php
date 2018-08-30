@@ -59,10 +59,11 @@ final class ModuleRequest {
     // Check result format
     $finalResult = [];
     $isSuccess   = isset($result['success']) ? true : false;
+    //dump($isSuccess === true && (isset($result['message']) || isset($result['data'])));exit;
 
     if ($isSuccess === false && isset($result['data'])) {
       $finalResult            = $result;
-      $finalResult['success'] = boolval($result['data']);
+      $finalResult['success'] = !empty($result['data']);
     } elseif ($isSuccess === true && (isset($result['message']) || isset($result['data']))) {
       $finalResult = $result;
     } elseif ($isSuccess === true) {
@@ -75,7 +76,7 @@ final class ModuleRequest {
         unset($result['message']);
       }
       $finalResult['data']    = $result;
-      $finalResult['success'] = boolval($result['data']);
+      $finalResult['success'] = !empty($finalResult['data']);
     }
 
     return $finalResult;
@@ -113,7 +114,7 @@ final class ModuleRequest {
     if ($requestConfig['cache'] === true) {
       $cacheKey = ModuleCache::makeKey([endpoint, $requestConfig]);
       $result   = ModuleCache::Endpoint($cacheKey);
-      if (!empty($result)) {
+      if ($result['success'] === true) {
         return $result;
       }
     }
@@ -163,14 +164,14 @@ final class ModuleRequest {
       $result = Json::decode($body, Json::FORCE_ARRAY);
     } catch (JsonException $e) {
       $result['message'] = $e->getMessage();
-      $result['data']    = $body;
+      $result['debug']    = $body;
       return $result;
     }
 
     // Format result
     $result = self::formatResult($result);
 
-    if ($requestConfig['cache'] === true && $result['success'] !== false) {
+    if ($requestConfig['cache'] === true && $result['success'] === true) {
       ModuleCache::Endpoint($cacheKey, $result);
     }
 
@@ -198,7 +199,7 @@ final class ModuleRequest {
     }
 
     if ($endpointConfig->enable === false) {
-      $requestConfig['message'] = _t('The endpoint are disabled.');
+      $requestConfig['message'] = _t('The endpoint is disabled.');
       $requestConfig['debug']   = $endpoint;
       return $requestConfig;
     }
@@ -207,7 +208,7 @@ final class ModuleRequest {
     $endpointConfig = ModuleHelper::objectToArray($endpointConfig);
 
     if (isset($endpointConfig['error'])) {
-      $requestConfig['message'] = _t('The endpoint are invalid.');
+      $requestConfig['message'] = _t('Invalid endpoint.');
       $requestConfig['debug']   = $endpoint;
       return $requestConfig;
     }
@@ -215,12 +216,13 @@ final class ModuleRequest {
     // Find and replace input value define by %@[name]%
     $sEndpointConfig = Json::encode($endpointConfig);
     $sEndpointConfig = ModuleConfig::returnValueFilter($endpoint, $sEndpointConfig);
-
+    
     try {
       $requestConfig = Json::decode($sEndpointConfig, Json::FORCE_ARRAY);
     } catch (JsonException $e) {
-      $requestConfig['message'] = _t('The endpoint are invalid.');
+      $requestConfig['message'] = _t('Invalid endpoint.');
       $requestConfig['error']   = $e->getMessage();
+      $requestConfig['debug']   = $sEndpointConfig;
       return $requestConfig;
     }
 
