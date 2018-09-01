@@ -13,7 +13,6 @@
 
 namespace CatsPlugins\TheCore;
 
-use Nette\InvalidArgumentException;
 use Nette\Utils\Callback;
 use \stdClass;
 
@@ -200,7 +199,7 @@ final class ModuleAdmin {
       $args = is_array($args) ? $args : [$args];
 
       //bdump([$hookName, $callable, $args], 'addCallbackWithParameter');
-      
+
       ModuleEvent::on($hookName, $callable, 10, 1, $args);
       $menuConfig->callback = null;
     }
@@ -283,7 +282,7 @@ final class ModuleAdmin {
   public static function addSettingsSection(string $sectionId, stdClass $sectionConfig): void {
     $sectionConfig->callback = ModuleHelper::fixCallback($sectionConfig->callback);
     //bdump([$sectionId, $sectionConfig->title, $sectionConfig->callback ?? null, $sectionConfig->tab], 'addSettingsSection');
-    add_settings_section($sectionId, $sectionConfig->section_title, $sectionConfig->callback ?? null, $sectionConfig->tab);
+    add_settings_section($sectionId, $sectionConfig->title, $sectionConfig->callback ?? null, $sectionConfig->tab);
   }
 
   /**
@@ -329,27 +328,20 @@ final class ModuleAdmin {
    * Add a settings field
    *
    * @param string   $optionId       Option ID
-   * @param array    $optionElements Option elements configuration
+   * @param stdClass $optionElements Option elements configuration
    * @param string   $sectionId      The section id name
    * @param stdClass $sectionConfig  Section Config
    *
    * @return void
    */
-  public static function addSettingsField(string $optionId, array $optionElements, string $sectionId, stdClass $sectionConfig): void {
+  public static function addSettingsField(string $optionId, stdClass $optionElements, string $sectionId, stdClass $sectionConfig): void {
     // Ignore if there is no configuration
     if (empty($optionElements)) {
       return;
     }
 
-    $optionStruct = ModuleConfig::Option('raw')->$optionId;
-
-    // Add more data field for generate html
-    $optionElements['echo']  = true;
-    $optionElements['name']  = $optionId;
-    $optionElements['value'] = ModuleConfig::Option()->$optionId ?? $optionStruct->default;
-    
     // Call generateElementHTML to generate html by $optionElements;
-    //bdump([$optionId, $optionStruct->title, [ModuleTemplate::class, 'generateElements'], $sectionConfig->tab, $sectionId, $optionElements], 'addSettingsField');
-    add_settings_field($optionId, $optionStruct->title, [ModuleTemplate::class, 'generateElements'], $sectionConfig->tab, $sectionId, $optionElements);
+    //bdump([$optionId, $optionElements->title, [ModuleTemplate::class, 'generateElements'], $sectionConfig->tab, $sectionId, $optionElements], 'addSettingsField');
+    add_settings_field($optionId, $optionElements->title, [ModuleTemplate::class, 'generateElements'], $sectionConfig->tab, $sectionId, $optionElements);
   }
 }

@@ -151,8 +151,6 @@ final class ModuleControl {
       $url          = "$assetsUrl/$fileExt/$basenameFile";
     }
 
-    $fileId = ModuleCore::$textDomain . '-' . $fileName;
-
     // Check the URL is outside the web or not, and categorized it
     if ($fileExt === false) {
       $jsDep  = array_search('js', $deps);
@@ -167,9 +165,11 @@ final class ModuleControl {
       }
     }
 
+    $fileId = ModuleCore::$textDomain . '-' . $fileName . '-' . $fileExt;
+
     // Register script or style
     if ($fileExt === 'js') {
-      $position = position === 'footer' ? true : false;
+      $position = $position === 'footer' ? true : false;
       $success  = ModuleEvent::on(
         'wp_loaded',
         function () use ($fileId, $url, $deps, $version, $position) {
@@ -280,7 +280,7 @@ final class ModuleControl {
 
     $fileId = $result['id'];
     $jsData = ModuleEvent::filter($filter, []);
-    
+
     $success = ModuleEvent::on(
       'wp_loaded',
       function () use ($fileId, $jsName, $jsData) {

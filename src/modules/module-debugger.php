@@ -55,7 +55,7 @@ final class ModuleDebugger {
     }
 
     Debugger::$showLocation = true;
-    Debugger::$maxDepth     = 7; // default: 3
+    Debugger::$maxDepth     = 10; // default: 3
     Debugger::$maxLength    = 650; // default: 150
     Debugger::$strictMode   = false;
 

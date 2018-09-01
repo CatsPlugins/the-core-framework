@@ -62,9 +62,10 @@ final class ModuleTemplate {
     // Add filter call any php method with params (with)
     self::$engine->addFilter(
       'func',
-      function (string $method, ...$arguments) {
+      function ($method, ...$arguments) {
+        list($callable, $args) = ModuleHelper::fixCallback([$method, $arguments]);
         try {
-          return Callback::invokeArgs($method, $arguments);
+          return Callback::invokeArgs($callable, $args);
         } catch (InvalidArgumentException $e) {
           bdump($e, 'Template filter func: ' . $method);
         }
@@ -119,15 +120,15 @@ final class ModuleTemplate {
     }
 
     // Add more page data
-    $pageConfig->page_id    = $pageId;
-    $pageConfig->textdomain = ModuleCore::$textDomain;
+    $pageConfig->page_id     = $pageId;
+    $pageConfig->text_domain = ModuleCore::$textDomain;
 
     // Add filter for more page data
     $pageConfig = ModuleEvent::filter('_page_data_' . $pageId, $pageConfig);
 
     // Remove data not used
-    unset($pageConfig->assets, $pageConfig->sections);
-    
+    unset($pageConfig->assets, $pageConfig->jsData, $pageConfig->ajax, $pageConfig->path);
+
     // Argument 2 passed renderToString must be of the type array
     if (is_object($pageConfig)) {
       $pageConfig = ModuleHelper::objectToArray($pageConfig);
@@ -211,7 +212,7 @@ final class ModuleTemplate {
     $elementValue = false;
     if (isset($elementConfig->attr->name)) {
       $elementName  = $elementConfig->attr->name;
-      $elementValue = ModuleConfig::Option()->$elementName;
+      $elementValue = ModuleConfig::Option()->$elementName ?? ModuleConfig::Option('raw')->$elementName->default;
     }
     //bdump([ModuleConfig::Option(), $elementName, $elementValue], 'Add value for Element');
 
@@ -291,7 +292,6 @@ final class ModuleTemplate {
     $childElement = [];
     if (!empty($elementConfig->child_element)) {
       $childElement = $elementConfig->child_element;
-      unset($elementConfig->child_element);
     }
 
     // Add child element
