@@ -165,6 +165,13 @@ final class ModuleConfig {
       $variable = Strings::substring($name, 1, -1);
       $value    = ModuleHelper::getVariableFormString($variable);
       //bdump($value, 'returnValueVariable');
+
+      // TODO: Need test
+      if (is_array($value)) {
+        $value = Json::encode($value);
+        $name  = '"' . $name . '"';
+      }
+
       $contents = str_replace($name, $value, $contents);
     }
 
@@ -190,11 +197,17 @@ final class ModuleConfig {
     // Replace value define by %@[name]%
     $prefix = '%@';
     foreach ($filterData as $name => $value) {
-      $value    = Validators::isNumeric($value) ? floatval($value) : $value;
-      $search   = $prefix . $name . '%';
-      $contents = str_replace($search, $value, $contents);
-    }
+      $value  = Validators::isNumeric($value) ? floatval($value) : $value;
+      $search = $prefix . $name . '%';
 
+      if (is_array($value)) {
+        $value  = Json::encode($value);
+        $search = '"' . $search . '"';
+      }
+
+      $contents = str_replace($search, $value, $contents);
+
+    }
     return $contents;
   }
 
