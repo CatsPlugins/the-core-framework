@@ -214,13 +214,18 @@ final class ModuleTemplate {
       $elementName  = $elementConfig->attr->name;
       $elementValue = ModuleConfig::Option()->$elementName ?? ModuleConfig::Option('raw')->$elementName->default;
     }
-    //bdump([ModuleConfig::Option(), $elementName, $elementValue], 'Add value for Element');
 
     // If there is an attr name it will have a value, but not overwritten
     if ($elementValue && !isset($elementConfig->attr->value)) {
-      $elementConfig->type        = ModuleConfig::Option('type')->$elementName;
-      $elementConfig->attr->value = $elementValue;
+      $type = ModuleConfig::Option('type')->$elementName;
+      if ($elementConfig->type === 'vue' && ($type === 'integer' || $type === 'number')) {
+        $elementConfig->attr->{':value'} = $elementValue;
+      } else {
+        $elementConfig->attr->value = $elementValue;
+      }
     }
+
+    //bdump([ModuleConfig::Option(), $elementName, $elementValue], 'Add value for Element');
 
     // If element is not have a html tag, render it forms a template
     if (isset(TCPF_WP_PATH_TEMPLATES_COMPONENTS[$htmlTag])) {
@@ -241,6 +246,8 @@ final class ModuleTemplate {
       // Generate a html tag
       $oHTML = self::generateHtmlTag($htmlTag, $elementConfig);
     }
+
+    //bdump((string) $oHTML);
 
     return (string) $oHTML;
   }

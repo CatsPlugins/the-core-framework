@@ -164,7 +164,7 @@ final class ModuleRequest {
       $result = Json::decode($body, Json::FORCE_ARRAY);
     } catch (JsonException $e) {
       $result['message'] = $e->getMessage();
-      $result['debug']    = $body;
+      $result['debug']   = $body;
       return $result;
     }
 
@@ -216,7 +216,7 @@ final class ModuleRequest {
     // Find and replace input value define by %@[name]%
     $sEndpointConfig = Json::encode($endpointConfig);
     $sEndpointConfig = ModuleConfig::returnValueFilter($endpoint, $sEndpointConfig);
-    
+
     try {
       $requestConfig = Json::decode($sEndpointConfig, Json::FORCE_ARRAY);
     } catch (JsonException $e) {

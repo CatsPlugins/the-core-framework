@@ -36,21 +36,22 @@ final class ModuleEvent {
    * Add a event
    *
    * @param string  $tag          The name of the event to hook the $function callback to.
-   * @param mixed   $function     The callback to be run when the filter is applied.
+   * @param mixed   $callable     The callback to be run when the filter is applied.
    * @param integer $priority     Lower numbers correspond with earlier execution.
    * @param integer $acceptedArgs The number of arguments the function accepts.
    * @param array   $parameters   Parameters passed to a callback
    *
    * @return void
    */
-  public static function on(string $tag, $function, int $priority = 10, int $acceptedArgs = 1, array $parameters = null) {
-    $tag = self::makeTag($tag);
+  public static function on(string $tag, $callable, int $priority = 10, int $acceptedArgs = 1, array $parameters = null) {
+    $tag      = self::makeTag($tag);
+    $function = $callable;
 
     // Add callback with parameters
-    if (!is_null($parameters)) {
-      $function = function () use ($function, $parameters) {
+    if (!is_null($parameters)) {      
+      $function = function () use ($callable, $parameters) {        
         try {
-          return Callback::invokeArgs($function, $parameters);
+          return Callback::invokeArgs($callable, $parameters);
         } catch (InvalidArgumentException $e) {
           bdump($e, 'Error callback with parameters');
         }
@@ -62,7 +63,7 @@ final class ModuleEvent {
   }
 
   /**
-   * Remove one or all event by tag 
+   * Remove one or all event by tag
    *
    * @param string  $tag      The name of the event to hook the $function callback to.
    * @param mixed   $function The callback to be run when the filter is applied.

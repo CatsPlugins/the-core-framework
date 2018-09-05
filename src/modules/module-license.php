@@ -142,7 +142,7 @@ final class ModuleLicense {
        */
       public function __construct() {
         $pluginData       = ModuleCore::$pluginData;
-        $this->theme_root = 'D:\Portable\autorun.inf\Laragon\www\wordpress/wp-content/themes';
+        $this->theme_root = get_theme_root();
         $this->stylesheet = $pluginData['TextDomain'];
         $this->template   = $pluginData['TextDomain'];
         $this->name       = $pluginData['Name'];
