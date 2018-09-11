@@ -29,8 +29,7 @@
       "CatsPlugins\\TheCore\\": "src"
     },
     "files": [
-      "src/the-core-framework.php",
-      "src/setup.php"
+      "src/the-core-framework.php"
     ]
   }
 }

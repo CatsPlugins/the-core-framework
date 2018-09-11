@@ -58,7 +58,7 @@ final class ModuleConfig {
   public static function add(...$configPaths): bool {
     $findFiles = Finder::findFiles('*.neon')->in(...$configPaths);
     if ($findFiles->count() > 0) {
-      self::$configFiles = self::makeConfigFiles($findFiles);
+      self::$configFiles[ModuleCore::$textDomain] = self::makeConfigFiles($findFiles);
       return true;
     }
 
@@ -105,8 +105,9 @@ final class ModuleConfig {
   private static function getConfigValue(string $name): array{
     $config = [];
 
-    $currentPath = self::getConfigFormFilePath(self::$configFiles);
-    $filePath    = $currentPath($name);
+    $currentConfig = self::$configFiles[ModuleCore::$textDomain];
+    $currentPath   = self::getConfigFormFilePath($currentConfig);
+    $filePath      = $currentPath($name);
 
     if (empty($filePath)) {
       return ['error' => "Config $name not found"];
@@ -252,14 +253,16 @@ final class ModuleConfig {
       return self::setOption($optionKey, $optionValue);
     }
 
+    $textDomain = ModuleCore::$textDomain;
+
     // Only read configuration file in first time
     // * Speed up!
-    if (!isset(self::$config[$name])) {
+    if (!isset(self::$config[$textDomain][$name])) {
       // Get config
-      self::$config[$name] = self::getConfigValue($name);
+      self::$config[$textDomain][$name] = self::getConfigValue($name);
 
       // Convert to object type
-      self::$config[$name] = ModuleHelper::arrayToObject(self::$config[$name]);
+      self::$config[$textDomain][$name] = ModuleHelper::arrayToObject(self::$config[$textDomain][$name]);
     }
 
     // Get all wp options with value formated
@@ -277,7 +280,7 @@ final class ModuleConfig {
       return self::getOptions();
     }
 
-    return self::$config[$name];
+    return self::$config[$textDomain][$name];
   }
 
   /**
@@ -390,33 +393,33 @@ final class ModuleConfig {
    */
   private static function formatOptionValue($value, string $type, int $mode) {
     switch ($type) {
-      case 'string':
-        $value = strval($value);
-        break;
-      case 'integer':
-        $value = intval($value);
-        break;
-      case 'number':
-        $value = floatval($value);
-        break;
-      case 'boolean':
-        $value = boolval($value) ? 1 : 0;
-        break;
-      case 'array':
-        if ($mode === self::READ) {
-          if (is_string($value)) {
-            try {
-              $value = Json::decode($value, Json::FORCE_ARRAY);
-            } catch (JsonException $e) {
-              $value = ['error' => $e->getMessage()];
-            }
+    case 'string':
+      $value = strval($value);
+      break;
+    case 'integer':
+      $value = intval($value);
+      break;
+    case 'number':
+      $value = floatval($value);
+      break;
+    case 'boolean':
+      $value = boolval($value) ? 1 : 0;
+      break;
+    case 'array':
+      if ($mode === self::READ) {
+        if (is_string($value)) {
+          try {
+            $value = Json::decode($value, Json::FORCE_ARRAY);
+          } catch (JsonException $e) {
+            $value = ['error' => $e->getMessage()];
           }
-          $value = (is_array($value) || is_object($value)) ? $value : [$value];
-        } elseif ($mode === self::WRITE) {
-          $value = (is_array($value) || is_object($value)) ? $value : [$value];
-          $value = Json::encode($value);
         }
-        break;
+        $value = (is_array($value) || is_object($value)) ? $value : [$value];
+      } elseif ($mode === self::WRITE) {
+        $value = (is_array($value) || is_object($value)) ? $value : [$value];
+        $value = Json::encode($value);
+      }
+      break;
     }
 
     return $value;
