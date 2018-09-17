@@ -309,7 +309,7 @@ final class ModuleRequest {
     $result            = [];
     $result['success'] = false;
 
-    $method = filter_input(INPUT_SERVER, 'REQUEST_METHOD');
+    $method = $_SERVER['REQUEST_METHOD'];
 
     if ($method === 'GET') {
       $action = filter_input(INPUT_GET, 'action', FILTER_SANITIZE_ENCODED);

@@ -121,7 +121,7 @@ final class ModuleHelper {
    * @return boolean
    */
   public static function isDevMode(string $domain): bool {
-    $serverName = filter_input(INPUT_SERVER, 'SERVER_NAME');
+    $serverName = $_SERVER['SERVER_NAME'];
     return $domain === $serverName;
   }
 
@@ -250,9 +250,9 @@ final class ModuleHelper {
    * @return string
    */
   public static function getCurrentUrl(): string {
-    $ssl        = filter_input(INPUT_SERVER, 'HTTPS');
-    $serverName = filter_input(INPUT_SERVER, 'SERVER_NAME');
-    $requestUri = filter_input(INPUT_SERVER, 'REQUEST_URI');
+    $ssl        = $_SERVER['HTTPS'];
+    $serverName = $_SERVER['SERVER_NAME'];
+    $requestUri = $_SERVER['REQUEST_URI'];
 
     $protocol = $ssl === 'on' ? 'https' : 'http';
 
@@ -267,9 +267,9 @@ final class ModuleHelper {
    * @return string
    */
   public static function pathToUrl(string $path): string {
-    $ssl          = filter_input(INPUT_SERVER, 'HTTPS');
-    $serverName   = filter_input(INPUT_SERVER, 'SERVER_NAME');
-    $documentRoot = filter_input(INPUT_SERVER, 'DOCUMENT_ROOT');
+    $ssl          = $_SERVER['HTTPS'];
+    $serverName   = $_SERVER['SERVER_NAME'];
+    $documentRoot = $_SERVER['DOCUMENT_ROOT'];
     $correctPath  = str_replace('\\', '/', $path);
     $uri          = str_replace($documentRoot, '', $correctPath);
 
