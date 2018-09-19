@@ -165,7 +165,8 @@ final class ModuleControl {
       }
     }
 
-    $fileId = ModuleCore::$textDomain . '-' . $fileName . '-' . $fileExt;
+    // Generate file id
+    $fileId = ModuleCore::$textDomain . '-' . $fileName . '-' . $fileExt . '-' . $result['hash'];
 
     // Register script or style
     if ($fileExt === 'js') {

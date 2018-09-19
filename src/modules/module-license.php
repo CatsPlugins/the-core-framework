@@ -178,6 +178,16 @@ final class ModuleLicense {
   }
 
   /**
+   * Reset Merlin
+   *
+   * @return void
+   */
+  public static function reset(): void {
+    $slug = strtolower(preg_replace('#[^a-zA-Z]#', '', ModuleCore::$pluginData['TextDomain']));
+    update_option('merlin_' . $slug . '_completed', '');
+  }
+
+  /**
    * Setup environment before MerlinWP init
    *
    * @param array $configs The Merlin configs
