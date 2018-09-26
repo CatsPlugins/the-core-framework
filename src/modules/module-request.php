@@ -163,9 +163,13 @@ final class ModuleRequest {
     try {
       $result = Json::decode($body, Json::FORCE_ARRAY);
     } catch (JsonException $e) {
-      $result['message'] = $e->getMessage();
-      $result['debug']   = $body;
-      return $result;
+      // Return error if type endpoint is json
+      if ($options['type'] === 'json') {
+        $result['message'] = $e->getMessage();
+        $result['debug']   = $body;
+        return $result;
+      }
+      $result['data'] = $body;
     }
 
     // Format result
@@ -174,6 +178,8 @@ final class ModuleRequest {
     if ($requestConfig['cache'] === true && $result['success'] === true) {
       ModuleCache::Endpoint($cacheKey, $result);
     }
+
+    //$result['request_config'] = $requestConfig;
 
     return $result;
   }

@@ -72,6 +72,9 @@ final class ModuleTemplate {
       }
     );
 
+    // Translate
+    self::$engine->addFilter('translate', [ModuleLanguage::class, 'trans']);
+
     // Auto compare value vs data
     self::$engine->addFilter('compare', [ModuleHelper::class, 'autoCompare']);
   }
