@@ -49,7 +49,7 @@ final class ModuleLicense {
       'child_action_btn_url' => '', // URL for the 'child-action-link'.
       'dev_mode'             => false, // Enable development mode for testing.
       'license_step'         => true, // EDD license activation step.
-      'license_required'     => false, // Require the license activation step.
+      'license_required'     => true, // Require the license activation step.
       'license_help_url'     => '', // URL for the 'license-tooltip'.
       'edd_remote_api_url'   => '', // EDD_Theme_Updater_Admin remote_api_url.
       'edd_item_name'        => '', // EDD_Theme_Updater_Admin item_name.
@@ -164,6 +164,15 @@ final class ModuleLicense {
   }
 
   /**
+   * Get slug name
+   *
+   * @return string
+   */
+  public static function getSlug(): string {
+    return strtolower(preg_replace('#[^a-zA-Z]#', '', ModuleCore::$pluginData['TextDomain']));
+  }
+
+  /**
    * Check Merlin has setup completed or not
    *
    * @return boolean
@@ -173,8 +182,26 @@ final class ModuleLicense {
       return false;
     }
 
-    $slug = strtolower(preg_replace('#[^a-zA-Z]#', '', ModuleCore::$pluginData['TextDomain']));
+    $slug = self::getSlug();
     return boolval(get_option('merlin_' . $slug . '_completed', false));
+  }
+
+  /**
+   * Get license
+   *
+   * @return string
+   */
+  public static function getLicense(): string {
+    $slug    = self::getSlug();
+    bdump($slug . '_license_key');
+    $license = get_option($slug . '_license_key', '');
+
+    // Reset Onboarding
+    if (empty($license)) {
+      self::reset();
+    }
+
+    return $license;
   }
 
   /**
@@ -183,7 +210,7 @@ final class ModuleLicense {
    * @return void
    */
   public static function reset(): void {
-    $slug = strtolower(preg_replace('#[^a-zA-Z]#', '', ModuleCore::$pluginData['TextDomain']));
+    $slug = self::getSlug();
     update_option('merlin_' . $slug . '_completed', '');
   }
 
