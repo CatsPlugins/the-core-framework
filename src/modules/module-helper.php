@@ -76,7 +76,7 @@ final class ModuleHelper {
 
     $callableString = Callback::toString([$class, $existMethod]);
     //dump($callableString, '$callableString');exit;
-    
+
     // Do a action hook before method called
     ModuleEvent::trigger('_before_' . $callableString);
 
@@ -237,11 +237,25 @@ final class ModuleHelper {
     foreach ($elements->childNodes as $subElement) {
       if ($subElement->nodeType == XML_TEXT_NODE) {
         $array['html'] = $subElement->wholeText;
-      } else {
+      } elseif ($subElement instanceof DOMElement) {
         $array['children'][] = self::elementsToArray($subElement);
       }
     }
     return $array;
+  }
+
+  /**
+   * Get full current domain
+   *
+   * @return string
+   */
+  public static function getCurrentDomain(): string {
+    $ssl        = $_SERVER['HTTPS'];
+    $serverName = $_SERVER['SERVER_NAME'];
+
+    $protocol = $ssl === 'on' ? 'https' : 'http';
+
+    return "$protocol://$serverName";
   }
 
   /**
@@ -250,13 +264,11 @@ final class ModuleHelper {
    * @return string
    */
   public static function getCurrentUrl(): string {
-    $ssl        = $_SERVER['HTTPS'];
-    $serverName = $_SERVER['SERVER_NAME'];
     $requestUri = $_SERVER['REQUEST_URI'];
 
-    $protocol = $ssl === 'on' ? 'https' : 'http';
+    $domain = self::getCurrentDomain();
 
-    return "$protocol://$serverName$requestUri";
+    return "$domain$requestUri";
   }
 
   /**

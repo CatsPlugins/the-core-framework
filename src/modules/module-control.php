@@ -14,6 +14,7 @@
 namespace CatsPlugins\TheCore;
 
 use Nette\Utils\Strings;
+use \stdClass;
 
 // Blocking access direct to the plugin
 defined('TCPF_WP_PATH_BASE') or die('No script kiddies please!');
@@ -72,6 +73,32 @@ final class ModuleControl {
     }
 
     return $assetsInfo;
+  }
+
+  /**
+   * Register assets files of page
+   *
+   * @param stdClass $pageConfig Page configs
+   *
+   * @return void
+   */
+  public static function setupAssetsPage(stdClass $pageConfig): void {
+    //bdump($pageConfig, 'setupAssetsPage');
+
+    // Setup assets files
+    if (!empty($pageConfig->assets)) {
+      ModuleControl::registerAssetsFiles($pageConfig->assets);
+    }
+
+    // Setup js variable config
+    if (!empty($pageConfig->jsData)) {
+      ModuleControl::provideDataJs($pageConfig->jsData);
+    }
+
+    // Setup ajax config
+    if (!empty($pageConfig->ajax)) {
+      ModuleRequest::setupMultipleAjax($pageConfig->ajax);
+    }
   }
 
   /**
@@ -141,9 +168,9 @@ final class ModuleControl {
       $basenameFile = $parsedPath['basename'];
 
       // Check file exist
-      $filePath = $assetsPath . DS . $fileExt . DS . $basenameFile;
+      $filePath = $assetsPath . $fileExt . DS . $basenameFile;
       if (!file_exists($filePath)) {
-        //bdump($filePath, 'file don\'t exists');
+        bdump($filePath, 'file don\'t exists');
         return $result;
       }
 
@@ -168,24 +195,32 @@ final class ModuleControl {
     // Generate file id
     $fileId = ModuleCore::$textDomain . '-' . $fileName . '-' . $fileExt . '-' . $result['hash'];
 
+    $success = false;
+    
     // Register script or style
     if ($fileExt === 'js') {
       $position = $position === 'footer' ? true : false;
-      $success  = ModuleEvent::on(
-        'wp_loaded',
-        function () use ($fileId, $url, $deps, $version, $position) {
-          //bdump([$fileId, $url, $deps, $version, $position], 'wp_register_script');
-          wp_register_script($fileId, $url, $deps, $version, $position);
-        }
-      );
+      //$success  = wp_register_script($fileId, $url, $deps, $version, $position);
+      if ($success === false) {
+        $success = ModuleEvent::on(
+          'wp_loaded',
+          function () use ($fileId, $url, $deps, $version, $position) {
+            //bdump([$fileId, $url, $deps, $version, $position], 'wp_register_script');
+            wp_register_script($fileId, $url, $deps, $version, $position);
+          }
+        );
+      }
     } elseif ($fileExt === 'css') {
-      $success = ModuleEvent::on(
-        'wp_loaded',
-        function () use ($fileId, $url, $deps, $version, $position) {
-          //bdump([$fileId, $url, $deps, $version, $position], 'wp_register_style');
-          wp_register_style($fileId, $url, $deps, $version, $position);
-        }
-      );
+      //$success = wp_register_style($fileId, $url, $deps, $version, $position);
+      if ($success === false) {
+        $success = ModuleEvent::on(
+          'wp_loaded',
+          function () use ($fileId, $url, $deps, $version, $position) {
+            //bdump([$fileId, $url, $deps, $version, $position], 'wp_register_style');
+            wp_register_style($fileId, $url, $deps, $version, $position);
+          }
+        );
+      }
     } else {
       bdump([$fileId, $fileName, $fileExt], 'Register fail');
       return $result;
@@ -222,19 +257,20 @@ final class ModuleControl {
    */
   private static function enqueueAssetsFile(string $file): bool {
     $result = self::getAssetsInfo($file);
-    //bdump([$file, $result], 'enqueueAssetsFile');
 
     // If assets file not reg, try reg it
-    if ($result === false) {
+    if (empty($result)) {
       $result = self::registerAssetsFile($file);
     }
+
+    //bdump([$file, $result], 'enqueueAssetsFile');
 
     if ($result['registered'] === false) {
       return false;
     }
 
     if ($result['ext'] === 'js') {
-      wp_enqueue_script($result['id']);
+      wp_enqueue_script($result['id']);      
     } elseif ($result['ext'] === 'css') {
       wp_enqueue_style($result['id']);
     } else {

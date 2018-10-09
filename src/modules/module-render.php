@@ -137,8 +137,7 @@ final class ModuleRender {
     $pageConfig = ModuleConfig::Admin()->PAGES->$pageId;
     //bdump($pageConfig, 'showPage');
 
-    // Enqueue assets files
-    if (isset($pageConfig->assets)) {
+    if (!empty($pageConfig->assets)) {
       ModuleControl::enqueueAssetsFiles($pageConfig->assets);
     }
 

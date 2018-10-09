@@ -51,11 +51,11 @@ final class ModuleAdmin {
   public static function init(): void {
     if (is_admin()) {
       // Create admin menu
-      ModuleEvent::on('admin_menu', [self::class, 'createMenus']);
-
-      // Setup admin assets
-      self::setupAssets();
+      ModuleEvent::on('admin_menu', [self::class, 'createMenus']);      
     }
+    
+    // Setup pages asset files
+    self::setupAssetsPages();
   }
 
   /**
@@ -232,24 +232,12 @@ final class ModuleAdmin {
    *
    * @return void
    */
-  public static function setupAssets(): void {
+  public static function setupAssetsPages(): void {
     $pagesConfig = ModuleConfig::Admin()->PAGES;
+    //bdump($pagesConfig, 'setupAssetsPages');
 
     foreach ($pagesConfig as $pageConfig) {
-      // Setup assets files
-      if (isset($pageConfig->assets)) {
-        ModuleControl::registerAssetsFiles($pageConfig->assets);
-      }
-
-      // Setup js variable config
-      if (isset($pageConfig->jsData)) {
-        ModuleControl::provideDataJs($pageConfig->jsData);
-      }
-
-      // Setup ajax config
-      if (isset($pageConfig->ajax)) {
-        ModuleRequest::setupMultipleAjax($pageConfig->ajax);
-      }
+      ModuleControl::setupAssetsPage($pageConfig);
     }
   }
 
@@ -300,7 +288,7 @@ final class ModuleAdmin {
       $optionStruct = ModuleConfig::Option('raw')->$optionId;
 
       self::registerSetting($pageId, $optionId, $optionStruct);
-      
+
       // Add a setting field
       self::addSettingsField($optionId, $optionElements, $sectionId, $sectionConfig);
     }

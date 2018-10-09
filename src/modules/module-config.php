@@ -393,33 +393,33 @@ final class ModuleConfig {
    */
   private static function formatOptionValue($value, string $type, int $mode) {
     switch ($type) {
-    case 'string':
-      $value = strval($value);
-      break;
-    case 'integer':
-      $value = intval($value);
-      break;
-    case 'number':
-      $value = floatval($value);
-      break;
-    case 'boolean':
-      $value = boolval($value) ? 1 : 0;
-      break;
-    case 'array':
-      if ($mode === self::READ) {
-        if (is_string($value)) {
-          try {
-            $value = Json::decode($value, Json::FORCE_ARRAY);
-          } catch (JsonException $e) {
-            $value = ['error' => $e->getMessage()];
+      case 'string':
+        $value = strval($value);
+        break;
+      case 'integer':
+        $value = intval($value);
+        break;
+      case 'number':
+        $value = floatval($value);
+        break;
+      case 'boolean':
+        $value = boolval($value) ? 1 : 0;
+        break;
+      case 'array':
+        if ($mode === self::READ) {
+          if (is_string($value)) {
+            try {
+              $value = Json::decode($value, Json::FORCE_ARRAY);
+            } catch (JsonException $e) {
+              $value = ['error' => $e->getMessage()];
+            }
           }
+          $value = (is_array($value) || is_object($value)) ? $value : [$value];
+        } elseif ($mode === self::WRITE) {
+          $value = (is_array($value) || is_object($value)) ? $value : [$value];
+          $value = Json::encode($value);
         }
-        $value = (is_array($value) || is_object($value)) ? $value : [$value];
-      } elseif ($mode === self::WRITE) {
-        $value = (is_array($value) || is_object($value)) ? $value : [$value];
-        $value = Json::encode($value);
-      }
-      break;
+        break;
     }
 
     return $value;
