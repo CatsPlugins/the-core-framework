@@ -151,7 +151,7 @@ final class ModuleRequest {
         $result['message'] = $e->getMessage();
         $result['debug']   = [
           'header'         => explode("\n", $header),
-          'body'           => ModuleHelper::htmlToArray($body),
+          'body'           => $body,
           'raw_data'       => $oResponse,
           'request_config' => $requestConfig,
         ];

@@ -300,7 +300,7 @@ final class ModuleAdmin {
       $optionStruct = ModuleConfig::Option('raw')->$optionId;
 
       self::registerSetting($pageId, $optionId, $optionStruct);
-
+      
       // Add a setting field
       self::addSettingsField($optionId, $optionElements, $sectionId, $sectionConfig);
     }

@@ -50,7 +50,7 @@ final class ModuleDebugger {
 
     $isDevMode = false;
     if (!$forceEnable) {
-      $devDomain = ModuleConfig::Core()->DEV_DOMAIN ?? '';
+      $devDomain = ModuleConfig::Option()->DEV_DOMAIN ?? '';
       $isDevMode = ModuleHelper::isDevMode($devDomain);
     }
 
