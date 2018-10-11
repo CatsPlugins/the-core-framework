@@ -193,7 +193,7 @@ final class ModuleLicense {
    */
   public static function getLicense(): string {
     $slug    = self::getSlug();
-    bdump($slug . '_license_key');
+    //bdump($slug . '_license_key');
     $license = get_option($slug . '_license_key', '');
 
     // Reset Onboarding
@@ -211,6 +211,7 @@ final class ModuleLicense {
    */
   public static function reset(): void {
     $slug = self::getSlug();
+    //bdump($slug, 'Reset Onboarding');
     update_option('merlin_' . $slug . '_completed', '');
   }
 

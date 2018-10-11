@@ -136,7 +136,7 @@ final class ModuleEvent {
    * @return void
    */
   public static function activatePlugin(callable $callback): void {
-    register_activation_hook(ModuleCore::$pluginPath, $callback);
+    ModuleEvent::on('activated_plugin', $callback);
   }
 
   /**
@@ -147,6 +147,6 @@ final class ModuleEvent {
    * @return void
    */
   public static function deactivatePlugin(callable $callback): void {
-    register_deactivation_hook(ModuleCore::$pluginPath, $callback);
+    ModuleEvent::on('deactivated_plugin', $callback);
   }
 }
