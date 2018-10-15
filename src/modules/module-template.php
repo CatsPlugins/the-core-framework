@@ -64,6 +64,7 @@ final class ModuleTemplate {
       'func',
       function ($method, ...$arguments) {
         list($callable, $args) = ModuleHelper::fixCallback([$method, $arguments]);
+        //bdump([$callable, $args], 'Filter call function');
         try {
           return Callback::invokeArgs($callable, $args);
         } catch (InvalidArgumentException $e) {
@@ -124,7 +125,7 @@ final class ModuleTemplate {
 
     // Add more page data
     $pageConfig->page_id     = $pageId;
-    $pageConfig->text_domain = ModuleCore::$textDomain;
+    $pageConfig->text_domain = ModuleCore::$textDomain;    
 
     // Add filter for more page data
     $pageConfig = ModuleEvent::filter('_page_data_' . $pageId, $pageConfig);

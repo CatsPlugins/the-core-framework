@@ -234,7 +234,7 @@ final class ModuleLicense {
     ModuleEvent::on('parent_theme_file_uri', [self::class, 'changeThemeFileUri'], 99, 2);
 
     // Change the configs names that match the plugin
-    $configs['edd_remote_api_url'] = $configs['remote_api_url'];
+    $configs['edd_remote_api_url'] = $configs['remote_api_url'] ?? '';
     unset($configs['remote_api_url'], $configs['edd_theme_slug']);
 
     return [$configs, $strings];

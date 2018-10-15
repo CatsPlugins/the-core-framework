@@ -407,7 +407,7 @@ final class ModuleConfig {
         break;
       case 'array':
         if ($mode === self::READ) {
-          if (is_string($value)) {
+          if (is_string($value) && !empty($value)) {
             try {
               $value = Json::decode($value, Json::FORCE_ARRAY);
             } catch (JsonException $e) {

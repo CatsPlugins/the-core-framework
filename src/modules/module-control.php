@@ -90,11 +90,6 @@ final class ModuleControl {
       ModuleControl::registerAssetsFiles($pageConfig->assets);
     }
 
-    // Setup js variable config
-    if (!empty($pageConfig->jsData)) {
-      ModuleControl::provideDataJs($pageConfig->jsData);
-    }
-
     // Setup ajax config
     if (!empty($pageConfig->ajax)) {
       ModuleRequest::setupMultipleAjax($pageConfig->ajax);
@@ -325,6 +320,8 @@ final class ModuleControl {
         wp_localize_script($fileId, $jsName, $jsData);
       }
     );
+
+    $success = wp_localize_script($fileId, $jsName, $jsData);
 
     return $success;
   }

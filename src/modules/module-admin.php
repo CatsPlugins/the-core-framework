@@ -51,9 +51,9 @@ final class ModuleAdmin {
   public static function init(): void {
     if (is_admin()) {
       // Create admin menu
-      ModuleEvent::on('admin_menu', [self::class, 'createMenus']);      
+      ModuleEvent::on('admin_menu', [self::class, 'createMenus']);
     }
-    
+
     // Setup pages asset files
     self::setupAssetsPages();
   }
@@ -190,7 +190,7 @@ final class ModuleAdmin {
 
     // Get hook of this menu
     $slug                    = plugin_basename($menuConfig->slug);
-    $admin_page_hooks[$slug] = sanitize_title($menuConfig->title);
+    $admin_page_hooks[$slug] = sanitize_title($menuConfig->title ?? '');
     $hookName                = get_plugin_page_hookname($slug, '');
     $hasCapability           = ModuleHelper::currentUserHave($menuConfig->capability);
 
@@ -268,8 +268,10 @@ final class ModuleAdmin {
    * @return void
    */
   public static function addSettingsSection(string $sectionId, stdClass $sectionConfig): void {
-    $sectionConfig->callback = ModuleHelper::fixCallback($sectionConfig->callback);
+    $sectionConfig->callback = ModuleHelper::fixCallback($sectionConfig->callback)[0];
+
     //bdump([$sectionId, $sectionConfig->title, $sectionConfig->callback ?? null, $sectionConfig->tab], 'addSettingsSection');
+
     add_settings_section($sectionId, $sectionConfig->title, $sectionConfig->callback ?? null, $sectionConfig->tab);
   }
 
@@ -283,6 +285,10 @@ final class ModuleAdmin {
    * @return void
    */
   public static function addSettings(string $pageId, string $sectionId, stdClass $sectionConfig): void {
+    if (empty($sectionConfig->options)) {
+      return;
+    }
+
     foreach ($sectionConfig->options as $optionId => $optionElements) {
       // Register a setting
       $optionStruct = ModuleConfig::Option('raw')->$optionId;

@@ -392,7 +392,7 @@ final class ModuleHelper {
    * @return array|bool
    */
   public static function fixCallback($callback) {
-    //bdump($callback, 'fix Callback');
+    //bdump($callback, 'Fixing Callback');
     if (is_null($callback)) {
       return false;
     }
@@ -403,35 +403,40 @@ final class ModuleHelper {
     }
 
     if (is_callable($callback)) {
+      //bdump($callback, 'Callable');
       return $callback;
     }
 
     if (is_object($callback)) {
       $callback = array_values(ModuleHelper::objectToArray($callback));
+      //bdump($callback, 'Fixed callback object type');
     }
 
-    if (!is_string($callback[0])) {
-      return false;
-    }
-
-    // Get full class namespace
-    $callable = self::getFullClassNameSpace($callback[0]);
+    $callable = $callback[0];
     $args     = $callback[1];
 
-    // If format: class::method(args)
-    if (Strings::contains($callable, '(')) {
-      $args     = Strings::after($callable, '(', 1);
-      $args     = Strings::before($args, ')', 1);
-      $callable = Strings::before($callable, '(', 1);
+    // Get full class namespace
+    if (is_string($callable)) {
+      $callable = self::getFullClassNameSpace($callable);
+      //bdump($callable, 'Fixed callback string type');
+
+      // If format: class::method(args)
+      if (Strings::contains($callable, '(') && Strings::contains($callable, ')')) {
+        $args     = Strings::after($callable, '(', 1);
+        $args     = Strings::before($args, ')', 1);
+        $callable = Strings::before($callable, '(', 1);
+        //bdump($callable, 'Fixed args callback static');
+      }
+
+      if (Strings::contains($callable, '::')) {
+        $class    = Strings::before($callable, '::', 1);
+        $method   = Strings::after($callable, '::', 1);
+        $callable = [$class, $method];
+        //bdump($callable, 'Fixed callback static');
+      }
     }
 
-    if (Strings::contains($callable, '::')) {
-      $class  = Strings::before($callable, '::', 1);
-      $method = Strings::after($callable, '::', 1);
-
-      $callable = [$class, $method];
-    }
-
+    //bdump($callable, 'Test Callback');
     try {
       Callback::check($callable);
     } catch (InvalidArgumentException $e) {
@@ -439,7 +444,7 @@ final class ModuleHelper {
       return false;
     }
 
-    //bdump([$callable, $args], 'fixed Callback');
+    //bdump([$callable, $args], 'Fixed Callback');
     return [$callable, $args];
   }
 

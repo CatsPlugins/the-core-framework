@@ -140,6 +140,11 @@ final class ModuleRender {
     if (!empty($pageConfig->assets)) {
       ModuleControl::enqueueAssetsFiles($pageConfig->assets);
     }
+    
+    // Setup js variable config
+    if (!empty($pageConfig->jsData)) {
+      ModuleControl::provideDataJs($pageConfig->jsData);
+    }
 
     echo ModuleTemplate::generatePage($pageId);
   }
