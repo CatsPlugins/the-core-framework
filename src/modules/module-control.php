@@ -191,7 +191,7 @@ final class ModuleControl {
     $fileId = ModuleCore::$textDomain . '-' . $fileName . '-' . $fileExt . '-' . $result['hash'];
 
     $success = false;
-    
+
     // Register script or style
     if ($fileExt === 'js') {
       $position = $position === 'footer' ? true : false;
@@ -251,7 +251,8 @@ final class ModuleControl {
    * @return void
    */
   private static function enqueueAssetsFile(string $file): bool {
-    $result = self::getAssetsInfo($file);
+    $success = false;
+    $result  = self::getAssetsInfo($file);
 
     // If assets file not reg, try reg it
     if (empty($result)) {
@@ -261,18 +262,38 @@ final class ModuleControl {
     //bdump([$file, $result], 'enqueueAssetsFile');
 
     if ($result['registered'] === false) {
-      return false;
+      return $success;
     }
+
+    //bdump(did_action('wp_loaded'), 'wp_loaded');
 
     if ($result['ext'] === 'js') {
-      wp_enqueue_script($result['id']);      
+      if (did_action('wp_loaded') >= 1) {
+        wp_enqueue_script($result['id']);
+        $success = true;
+      } else {
+        $success = ModuleEvent::on(
+          'wp_loaded',
+          function () use ($result) {
+            wp_enqueue_script($result['id']);
+          }
+        );
+      }
     } elseif ($result['ext'] === 'css') {
-      wp_enqueue_style($result['id']);
-    } else {
-      return false;
+      if (did_action('wp_loaded') >= 1) {
+        wp_enqueue_style($result['id']);
+        $success = true;
+      } else {
+        $success = ModuleEvent::on(
+          'wp_loaded',
+          function () use ($result) {
+            wp_enqueue_style($result['id']);
+          }
+        );
+      }
     }
 
-    return true;
+    return $success;
   }
 
   /**
@@ -299,6 +320,8 @@ final class ModuleControl {
    * @return boolean
    */
   private static function setDataToJs(string $file, string $jsName, string $filter): bool {
+    global $wp_scripts;
+
     $result = self::getAssetsInfo($file);
     //bdump([$result, $jsName, $filter], 'setDataToJs');
 
@@ -313,15 +336,24 @@ final class ModuleControl {
     $fileId = $result['id'];
     $jsData = ModuleEvent::filter($filter, []);
 
-    $success = ModuleEvent::on(
-      'wp_loaded',
-      function () use ($fileId, $jsName, $jsData) {
-        //bdump([$fileId, $jsName, $jsData], 'wp_localize_script');
-        wp_localize_script($fileId, $jsName, $jsData);
-      }
-    );
+    // Remove exist content
+    $data = $wp_scripts->get_data($fileId, 'data');
+    if (!empty($data)) {      
+      $wp_scripts->add_data($fileId, 'data', '');
+    }
 
-    $success = wp_localize_script($fileId, $jsName, $jsData);
+    //bdump(did_action('wp_loaded'), 'wp_loaded');
+    if (did_action('wp_loaded') >= 1) {
+      $success = wp_localize_script($fileId, $jsName, $jsData);
+    } else {
+      $success = ModuleEvent::on(
+        'wp_loaded',
+        function () use ($fileId, $jsName, $jsData) {
+          //bdump([$fileId, $jsName, $jsData], 'wp_localize_script');
+          wp_localize_script($fileId, $jsName, $jsData);
+        }
+      );
+    }
 
     return $success;
   }

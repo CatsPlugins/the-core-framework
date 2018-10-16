@@ -349,12 +349,8 @@ final class ModuleConfig {
     $type         = $configOption->type ?? '';
 
     // Get current value or default value
-    $value = get_option($optionName, false);
-
-    if (empty($value)) {
-      $optionName = ModuleCore::$textDomain . '_' . $key;
-      $value      = get_option($optionName, $configOption->default ?? false);
-    }
+    $optionName = ModuleCore::$textDomain . '_' . $key;
+    $value      = get_option($optionName, $configOption->default ?? false);
 
     // Returns raw data if a data type is not set, just like the WP Option is not managed by this plugin
     if ($forceRaw === true) {
@@ -403,7 +399,11 @@ final class ModuleConfig {
         $value = floatval($value);
         break;
       case 'boolean':
-        $value = boolval($value) ? 1 : 0;
+        if ($mode === self::READ) {
+          $value = boolval($value);
+        } elseif ($mode === self::WRITE) {
+          $value = boolval($value) ? 1 : 0;
+        }
         break;
       case 'array':
         if ($mode === self::READ) {

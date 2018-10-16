@@ -125,7 +125,7 @@ final class ModuleTemplate {
 
     // Add more page data
     $pageConfig->page_id     = $pageId;
-    $pageConfig->text_domain = ModuleCore::$textDomain;    
+    $pageConfig->text_domain = ModuleCore::$textDomain;
 
     // Add filter for more page data
     $pageConfig = ModuleEvent::filter('_page_data_' . $pageId, $pageConfig);
@@ -148,15 +148,17 @@ final class ModuleTemplate {
   /**
    * Generate elements by config
    *
-   * @param array $elementsConfig The elements config
+   * @param string $optionId       The option id
+   * @param array  $elementsConfig The elements config
    *
    * @return string
    */
-  public static function generateElements(array $elementsConfig): string {
+  public static function generateElements(string $optionId, array $elementsConfig): string {
     if (is_array($elementsConfig)) {
       $elementsConfig = ModuleHelper::arrayToObject($elementsConfig);
     }
 
+    //bdump($optionId, 'Option ID');
     //bdump($elementsConfig, 'Elements Config');
 
     $oElement = Html::el();
@@ -171,9 +173,9 @@ final class ModuleTemplate {
         $elementConfig->attr = new stdClass;
       }
 
-      // If it is not named, it will have the value of the main element
+      // If it is not have name as option id, it will have the name of current option id
       if (!isset($elementConfig->attr->name)) {
-        $elementConfig->attr->name = $elementsConfig->name;
+        $elementConfig->attr->name = $optionId;
       }
 
       $oHTML = self::generateElement($elementConfig);
@@ -214,13 +216,13 @@ final class ModuleTemplate {
 
     // Try to get an optional value if named (possibly an optional id)
     $elementValue = false;
-    if (isset($elementConfig->attr->name)) {
+    if (!empty($elementConfig->attr->name)) {
       $elementName  = $elementConfig->attr->name;
       $elementValue = ModuleConfig::Option()->$elementName ?? ModuleConfig::Option('raw')->$elementName->default;
     }
 
     // If there is an attr name it will have a value, but not overwritten
-    if ($elementValue && !isset($elementConfig->attr->value)) {
+    if ($elementValue && !isset($elementConfig->attr->value) && !isset($elementConfig->attr->{':value'})) {
       $type = ModuleConfig::Option('type')->$elementName;
       if ($elementConfig->type === 'vue' && ($type === 'integer' || $type === 'number')) {
         $elementConfig->attr->{':value'} = $elementValue;

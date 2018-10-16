@@ -343,7 +343,7 @@ final class ModuleRequest {
 
     if ($capability === false && $config[$action]['capability'] !== 'all') {
       http_response_code(403);
-      $result['message'] = _t('You do not have permission to use.');
+      $result['message'] = _t('You do not have permission to call ajax.');
       ModuleRender::sendJson($result);
     }
 

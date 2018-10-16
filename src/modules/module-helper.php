@@ -504,9 +504,12 @@ final class ModuleHelper {
     list($callable, $args) = self::fixCallback($data);
 
     if (is_null($callable) || !is_array($args)) {
+      if (is_object($data)) {
+        array_walk($data, [self::class, 'lazyInvokeArgsRecursive']);
+      }
       return;
     }
-
+    
     //bdump([$callable, $args], 'lazyInvokeArgsRecursive');
 
     try {
